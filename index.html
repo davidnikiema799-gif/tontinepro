@@ -358,6 +358,57 @@
     .ib-actions{ width:100%; justify-content:flex-end; }
   }
 
+  /* Tranches (réceptions) d'un participant */
+  .tranches-zone{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); }
+  .tranches-label{
+    font-size:10px; color:var(--slate); text-transform:uppercase;
+    letter-spacing:0.5px; font-weight:500; margin-bottom:8px;
+  }
+  .tranche-row{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .tranche-num{
+    width:34px; flex-shrink:0; font-size:10px; color:var(--gold-soft);
+    font-family:'IBM Plex Mono'; text-align:center;
+  }
+  .tranche-row input{ flex:1; min-width:0; }
+  .rm-tranche{
+    background:#fff; border:1px solid var(--line); color:var(--slate);
+    width:32px; height:32px; border-radius:8px; cursor:pointer; flex-shrink:0; font-size:11px;
+  }
+  .rm-tranche:hover{ border-color: var(--brick); color: var(--brick); }
+  .add-tranche-btn{
+    background:none; border:1px dashed var(--line); color:var(--slate);
+    width:100%; padding:7px; border-radius:8px; cursor:pointer; font-size:12px; margin-top:2px;
+  }
+  .add-tranche-btn:hover{ border-color: rgba(200,137,44,0.5); color: var(--gold-soft); }
+
+  /* Liste d'ordre de passage */
+  .ordre-row{
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    background: var(--bg-panel-2); border:1px solid var(--line);
+    border-radius:9px; margin-bottom:6px;
+  }
+  .ordre-row.en-groupe{ border-left:3px solid var(--gold); }
+  .o-badge{
+    width:26px; height:26px; border-radius:50%; background:#fff; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    font-size:11px; font-family:'IBM Plex Mono'; color:var(--slate);
+  }
+  .o-badge.groupe{ color: var(--gold-soft); border-color: rgba(200,137,44,0.5); }
+  .o-info{ flex:1; min-width:0; }
+  .o-nom{ font-size:13.5px; font-weight:500; }
+  .o-tranche{
+    font-size:10px; color:var(--gold-soft); font-family:'IBM Plex Mono';
+    background: rgba(200,137,44,0.12); padding:1px 5px; border-radius:5px; margin-left:4px;
+  }
+  .o-montant{ font-size:11px; color:var(--slate); font-family:'IBM Plex Mono'; margin-top:1px; }
+  .o-groupe-wrap{
+    display:flex; align-items:center; gap:5px; font-size:10.5px;
+    color:var(--slate); cursor:pointer; flex-shrink:0; user-select:none;
+  }
+  .o-groupe-wrap input{ width:auto !important; margin:0; accent-color: var(--gold); cursor:pointer; }
+  .n-tranche{ font-size:8px; color:var(--gold-soft); }
+  .node.current .n-tranche{ color:#5c3f10; }
+
   .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
   .error-msg{ color: var(--brick); font-size:12px; margin-top:10px; }
 
@@ -494,7 +545,7 @@
 <body>
 
 <div class="topbar">
-  <div class="brand"><span class="dot"></span>TontinePro<span class="version-tag"></span></div>
+  <div class="brand"><span class="dot"></span>TontinePro<span class="version-tag">v3</span></div>
 </div>
 
 <div class="container">
@@ -503,7 +554,7 @@
   <div class="view active" id="view-dashboard">
     <div class="page-head">
       <div>
-        <h1>Mes tontines</h1>
+        <h1>Tes tontines</h1>
         <p id="dashboard-sub"></p>
       </div>
       <button class="btn-primary" onclick="openCreateModal()">+ Nouvelle tontine</button>
@@ -595,11 +646,17 @@
     </div>
 
     <div class="field">
-      <label>Participants, cotisation, pactole et ordre de passage</label>
+      <label>Participants et cotisations</label>
       <div class="sub" id="participant-hint" style="margin-bottom:6px;"></div>
-      <div class="sub" style="margin-bottom:10px; font-size:12px;">Coche « même échéance que le précédent » quand deux personnes ou plus touchent le même mois.</div>
+      <div class="sub" style="margin-bottom:10px; font-size:12px;">Ajoute une tranche à quelqu'un qui cotise double et touche deux fois dans le cycle.</div>
       <div id="participant-inputs" class="mode-fixe"></div>
       <button class="add-participant-btn" onclick="addParticipantInput()">+ Ajouter un participant</button>
+    </div>
+
+    <div class="field">
+      <label>Ordre de passage</label>
+      <div class="sub" style="margin-bottom:10px; font-size:12px;">Une ligne par tranche à recevoir. Coche « même échéance » quand deux tranches tombent le même mois.</div>
+      <div id="ordre-list"></div>
     </div>
 
     <div class="error-msg" id="form-error"></div>
@@ -631,6 +688,11 @@
     <h2 id="nc-title">🎉 Cycle terminé !</h2>
     <div class="sub" id="nc-sub"></div>
     <div id="nc-participant-inputs"></div>
+    <div class="field" style="margin-top:18px;">
+      <label>Ordre de passage</label>
+      <div class="sub" style="margin-bottom:10px; font-size:12px;">Une ligne par tranche. Coche « même échéance » quand deux tranches tombent le même mois.</div>
+      <div id="nc-ordre-list"></div>
+    </div>
     <div class="error-msg" id="nc-error"></div>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="closeNouveauCycleModal()">Plus tard</button>
@@ -698,6 +760,28 @@ function loadData(){
       // Migration : un tour peut désormais avoir plusieurs bénéficiaires.
       if(!tour.beneficiaires_ids){
         tour.beneficiaires_ids = [tour.beneficiaire_id];
+        migrated = true;
+      }
+    });
+    // Migration : un participant peut désormais recevoir plusieurs tranches.
+    if(t.participants.some(p => !p.receptions)){
+      t.participants.forEach(p => {
+        if(!p.receptions){
+          p.receptions = [{ id: uid(), ordre_tour: p.ordre_tour, pactole: p.pactole }];
+        }
+      });
+      migrated = true;
+    }
+    // Fige les bénéficiaires des tours qui n'ont que l'ancien format.
+    t.tours.forEach(tour => {
+      if(!tour.beneficiaires){
+        const ids = tour.beneficiaires_ids || [tour.beneficiaire_id];
+        tour.beneficiaires = ids.map(id => {
+          const p = t.participants.find(x => x.id === id);
+          if(!p) return null;
+          const r = (p.receptions || [])[0];
+          return { participant_id: p.id, reception_id: r ? r.id : null, montant: r ? r.pactole : (p.pactole || 0) };
+        }).filter(Boolean);
         migrated = true;
       }
     });
@@ -784,34 +868,74 @@ function parseDateFr(str){
 // à l'autre, donc on ne peut pas l'indexer par tour_actuel.
 function tourEnCours(t){ return t.tours[t.tours.length - 1]; }
 
-/* ---------- Groupes de bénéficiaires ----------
-   Plusieurs participants peuvent toucher la même échéance : ordre_tour n'est donc
-   pas unique, c'est le numéro d'échéance partagé par un groupe. */
+/* ---------- Réceptions (tranches) ----------
+   Un participant peut toucher plusieurs fois dans un cycle : ses réceptions sont
+   donc une liste. Plusieurs réceptions (du même participant ou non) peuvent
+   partager une échéance. */
 
-// Nombre d'échéances dans un cycle (≠ nombre de participants quand il y a des groupes).
-function nombreTours(t){
-  return Math.max(...t.participants.map(p => p.ordre_tour));
+// Toutes les réceptions à plat, triées par échéance.
+function toutesReceptions(t){
+  const out = [];
+  t.participants.forEach(p => {
+    (p.receptions || []).forEach(r => out.push({ participant: p, reception: r }));
+  });
+  return out.sort((a, b) => a.reception.ordre_tour - b.reception.ordre_tour);
 }
 
-// Participants qui touchent lors d'un tour donné.
+// Nombre d'échéances dans un cycle (≠ nombre de participants).
+function nombreTours(t){
+  const ordres = toutesReceptions(t).map(x => x.reception.ordre_tour);
+  return ordres.length ? Math.max(...ordres) : 1;
+}
+
+// Réceptions prévues pour une échéance donnée.
+function receptionsDuTour(t, numeroTour){
+  return toutesReceptions(t).filter(x => x.reception.ordre_tour === numeroTour);
+}
+
+// Bénéficiaires effectifs d'un tour : figés à la création du tour pour que
+// l'historique reste juste même si les montants changent au cycle suivant.
 function beneficiairesDuTour(t, tour){
+  if(tour.beneficiaires){
+    return tour.beneficiaires.map(b => ({
+      participant: t.participants.find(p => p.id === b.participant_id),
+      montant: b.montant,
+      reception_id: b.reception_id
+    })).filter(x => x.participant);
+  }
+  // Compatibilité avec les anciens formats.
   const ids = tour.beneficiaires_ids || [tour.beneficiaire_id];
-  return ids.map(id => t.participants.find(p => p.id === id)).filter(Boolean);
+  return ids.map(id => {
+    const p = t.participants.find(x => x.id === id);
+    return p ? { participant: p, montant: p.pactole || 0 } : null;
+  }).filter(Boolean);
 }
 
 function pactoleTotalTour(t, tour){
-  return beneficiairesDuTour(t, tour).reduce((s, p) => s + p.pactole, 0);
+  return beneficiairesDuTour(t, tour).reduce((s, b) => s + b.montant, 0);
 }
 
 function nomsBeneficiaires(t, tour){
   const b = beneficiairesDuTour(t, tour);
   if(b.length === 0) return 'Participant supprimé';
-  if(b.length === 1) return b[0].nom;
-  return b.slice(0, -1).map(p => p.nom).join(', ') + ' et ' + b[b.length - 1].nom;
+  const noms = b.map(x => x.participant.nom);
+  if(noms.length === 1) return noms[0];
+  return noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1];
 }
 
-function participantsDuTour(t, numeroTour){
-  return t.participants.filter(p => p.ordre_tour === numeroTour);
+// Instantané des bénéficiaires d'une échéance, à stocker sur le tour.
+function figerBeneficiaires(t, numeroTour){
+  return receptionsDuTour(t, numeroTour).map(x => ({
+    participant_id: x.participant.id,
+    reception_id: x.reception.id,
+    montant: x.reception.pactole
+  }));
+}
+
+// Numéro de tranche d'une réception pour un participant (1/2, 2/2...).
+function indexTranche(p, reception){
+  const idx = (p.receptions || []).findIndex(r => r.id === reception.id);
+  return { numero: idx + 1, total: (p.receptions || []).length };
 }
 
 let data = loadData();
@@ -874,7 +998,6 @@ function renderDashboard(){
     const minM = Math.min(...montants), maxM = Math.max(...montants);
     const cotisationLabel = minM === maxM ? `${fmt(minM)} F` : `de ${fmt(minM)} à ${fmt(maxM)} F`;
     const benefs = beneficiairesDuTour(t, tour);
-
     html += `
       <div class="tontine-card" onclick="openDetail('${t.id}')">
         <div class="tc-top">
@@ -982,9 +1105,15 @@ function buildBeneficiaireCard(t, tour){
   card.className = 'beneficiaire-card';
   const benefs = beneficiairesDuTour(t, tour);
   const total = pactoleTotalTour(t, tour);
-  const detail = benefs.length > 1
-    ? benefs.map(b => `${escapeHtml(b.nom)} : ${fmt(b.pactole)} F`).join(' · ')
-    : `${fmt(total)} F au total`;
+
+  // Précise « tranche 1/2 » quand un participant touche plusieurs fois.
+  const detail = benefs.map(b => {
+    const p = b.participant;
+    const r = (p.receptions || []).find(x => x.id === b.reception_id);
+    const tr = r ? indexTranche(p, r) : { total: 1 };
+    const suffixe = tr.total > 1 ? ` (tranche ${tr.numero}/${tr.total})` : '';
+    return `${escapeHtml(p.nom)}${suffixe} : ${fmt(b.montant)} F`;
+  }).join(' · ');
 
   if(tour.statut === 'terminee'){
     // Cycle déjà clôturé mais nouveau cycle pas encore configuré (choix "Plus tard").
@@ -1044,14 +1173,13 @@ function finaliserTour(t, tour){
   }
 
   const prochainNumero = t.tour_actuel + 1;
-  const prochainsBeneficiaires = participantsDuTour(t, prochainNumero);
 
   const nouveauTour = {
     numero_tour: t.tours.length + 1,
     cycle: t.cycle,
     tour_dans_cycle: prochainNumero,
     date_prevue: ajouterPeriodes(tour.date_prevue, t.frequence, 1),
-    beneficiaires_ids: prochainsBeneficiaires.map(p => p.id),
+    beneficiaires: figerBeneficiaires(t, prochainNumero),
     statut: 'en_cours',
     recu: false,
     cotisations: {}
@@ -1073,27 +1201,28 @@ function buildWheel(t, tour){
   const nodeSize = taille < 320 ? 62 : 72;
   const cx = taille / 2, cy = taille / 2;
   const R = (taille - nodeSize) / 2 - 2;
-  const nbParticipants = t.participants.length;
   const nbTours = nombreTours(t);
-  const benefIds = beneficiairesDuTour(t, tour).map(b => b.id);
+  const benefRecIds = beneficiairesDuTour(t, tour).map(b => b.reception_id);
 
   const center = document.createElement('div');
   center.className = 'wheel-center';
   center.innerHTML = `<div class="amount">${fmt(pactoleTotalTour(t, tour))} F</div><div class="label">${labelPeriode(tour.date_prevue, t.frequence)}</div><div class="tour">Tour ${t.tour_actuel} / ${nbTours}</div>`;
   wheel.appendChild(center);
 
-  // Les participants sont placés dans l'ordre de passage : ceux qui partagent une
-  // échéance se retrouvent donc côte à côte sur le cercle.
-  const ordonnes = [...t.participants].sort((a,b) => a.ordre_tour - b.ordre_tour);
+  // Une bulle par réception : un participant qui touche deux fois dans le cycle
+  // apparaît deux fois sur le cercle, à chacune de ses places.
+  const receptions = toutesReceptions(t);
+  const nb = receptions.length;
 
-  ordonnes.forEach((p, i) => {
-    const angle = (i / nbParticipants) * 2 * Math.PI - Math.PI/2;
+  receptions.forEach((item, i) => {
+    const p = item.participant, r = item.reception;
+    const angle = (i / nb) * 2 * Math.PI - Math.PI/2;
     const x = cx + R * Math.cos(angle) - nodeSize / 2;
     const y = cy + R * Math.sin(angle) - nodeSize / 2;
     const node = document.createElement('div');
     let cls = 'node';
-    const isCurrent = benefIds.includes(p.id);
-    const isPast = p.ordre_tour < t.tour_actuel;
+    const isCurrent = benefRecIds.length ? benefRecIds.includes(r.id) : r.ordre_tour === t.tour_actuel;
+    const isPast = r.ordre_tour < t.tour_actuel;
     const cotStatut = tour.cotisations[p.id];
 
     if(isCurrent) cls += tour.recu ? ' current recu' : ' current';
@@ -1104,13 +1233,15 @@ function buildWheel(t, tour){
     node.className = cls;
     node.style.left = x+'px';
     node.style.top = y+'px';
-    let statusLabel = isCurrent ? (tour.recu ? 'a reçu ✓' : 'à recevoir') : isPast ? 'déjà reçu' : (cotStatut === 'paye' ? 'a payé' : 'en attente');
-    // Mois auquel chaque participant touche : décalé depuis l'échéance en cours.
-    const echeance = ajouterPeriodes(tour.date_prevue, t.frequence, p.ordre_tour - t.tour_actuel);
+    const statusLabel = isCurrent ? (tour.recu ? 'a reçu ✓' : 'à recevoir') : isPast ? 'déjà reçu' : (cotStatut === 'paye' ? 'a payé' : 'en attente');
+    // Mois auquel cette réception tombe : décalé depuis l'échéance en cours.
+    const echeance = ajouterPeriodes(tour.date_prevue, t.frequence, r.ordre_tour - t.tour_actuel);
     const moisCourt = t.frequence === 'mensuel'
       ? MOIS_FR[new Date(echeance + 'T00:00:00').getMonth()].slice(0,4) + '.'
       : labelPeriode(echeance, t.frequence).replace('sem. du ', '');
-    node.innerHTML = `<div class="n-mois">${moisCourt}</div><div class="n-name">${escapeHtml(p.nom.split(' ')[0])}</div><div class="n-status">${statusLabel}</div>`;
+    const tr = indexTranche(p, r);
+    const nomAffiche = escapeHtml(p.nom.split(' ')[0]) + (tr.total > 1 ? ` <span class="n-tranche">${tr.numero}/${tr.total}</span>` : '');
+    node.innerHTML = `<div class="n-mois">${moisCourt}</div><div class="n-name">${nomAffiche}</div><div class="n-status">${statusLabel}</div>`;
     wheel.appendChild(node);
   });
 }
@@ -1118,16 +1249,31 @@ function buildWheel(t, tour){
 function buildList(t, tour){
   const list = document.getElementById('participant-list');
   list.innerHTML = '';
-  t.participants.forEach((p, i) => {
+  // Trié par première échéance, pour suivre l'ordre de passage.
+  const ordonnes = [...t.participants].sort((a, b) => {
+    const ra = Math.min(...(a.receptions || []).map(r => r.ordre_tour));
+    const rb = Math.min(...(b.receptions || []).map(r => r.ordre_tour));
+    return ra - rb;
+  });
+
+  ordonnes.forEach(p => {
     const row = document.createElement('div');
     row.className = 'participant-row';
     const paye = tour.cotisations[p.id] === 'paye';
+    const recs = p.receptions || [];
+    const echeances = recs.map(r => r.ordre_tour).join(', ');
+    const totalRecu = recs.reduce((s, r) => s + r.pactole, 0);
+    // Détaille les tranches quand il y en a plusieurs.
+    const detailPactole = recs.length > 1
+      ? `${recs.length} tranches (${recs.map(r => fmt(r.pactole) + ' F').join(' + ')})`
+      : `pactole ${fmt(totalRecu)} F`;
+
     row.innerHTML = `
       <div class="p-left">
-        <div class="p-order">${p.ordre_tour}</div>
+        <div class="p-order">${echeances}</div>
         <div>
           <div class="p-name">${escapeHtml(p.nom)}</div>
-          <div class="p-phone">${escapeHtml(p.telephone || '')}${p.telephone ? ' · ' : ''}${fmt(p.montant_cotisation)} F/tour · pactole ${fmt(p.pactole)} F</div>
+          <div class="p-phone">${escapeHtml(p.telephone || '')}${p.telephone ? ' · ' : ''}${fmt(p.montant_cotisation)} F/tour · ${detailPactole}</div>
         </div>
       </div>
       <button class="check-btn ${paye?'checked':''}" onclick="toggleCotisation('${p.id}')">${paye?'✓':'✕'}</button>
@@ -1195,9 +1341,13 @@ function openHistoriqueModal(){
           const benefs = beneficiairesDuTour(t, tr);
           const payees = Object.values(tr.cotisations).filter(s => s === 'paye').length;
           const total = Object.keys(tr.cotisations).length;
-          const detail = benefs.length > 1
-            ? benefs.map(b => `${escapeHtml(b.nom)} ${fmt(b.pactole)} F`).join(' + ')
-            : `${escapeHtml(nomsBeneficiaires(t, tr))} — ${fmt(pactoleTotalTour(t, tr))} F`;
+          const detail = benefs.map(b => {
+            const p = b.participant;
+            const r = (p.receptions || []).find(x => x.id === b.reception_id);
+            const idx = r ? indexTranche(p, r) : { total: 1 };
+            const suffixe = idx.total > 1 ? ` (${idx.numero}/${idx.total})` : '';
+            return `${escapeHtml(p.nom)}${suffixe} ${fmt(b.montant)} F`;
+          }).join(' + ');
           return `
             <div class="participant-row">
               <div class="p-left">
@@ -1235,32 +1385,32 @@ function openNouveauCycleModal(){
 
   document.getElementById('nc-title').textContent = `🎉 Cycle ${t.cycle} terminé !`;
   document.getElementById('nc-sub').textContent =
-    `Les ${t.participants.length} participants sont tous passés. Ajuste les montants ou l'ordre si besoin, puis lance le cycle ${t.cycle + 1}.`;
+    `Les ${nombreTours(t)} échéances sont passées. Ajuste les montants, les tranches ou l'ordre, puis lance le cycle ${t.cycle + 1}.`;
 
   const wrap = document.getElementById('nc-participant-inputs');
   wrap.innerHTML = '';
 
-  const ordered = [...t.participants].sort((a,b) => a.ordre_tour - b.ordre_tour);
-  ordered.forEach((p, idx) => {
-    // Une ligne est "groupée" si elle partage l'échéance de celle qui la précède.
-    const groupe = idx > 0 && ordered[idx - 1].ordre_tour === p.ordre_tour;
+  // Participants triés par leur première réception.
+  const ordered = [...t.participants].sort((a, b) => {
+    const ra = Math.min(...(a.receptions || []).map(r => r.ordre_tour));
+    const rb = Math.min(...(b.receptions || []).map(r => r.ordre_tour));
+    return ra - rb;
+  });
+
+  ordered.forEach(p => {
     const row = document.createElement('div');
     row.className = 'participant-input-row';
     row.dataset.id = p.id;
+    row.dataset.pkey = uid();
     row.innerHTML = `
       <div class="pi-row1">
-        <span class="p-order-badge"></span>
         <div class="pi-field f-nom">
           <label>Nom</label>
-          <input type="text" class="p-input-nom" value="${escapeAttr(p.nom)}">
+          <input type="text" class="p-input-nom" value="${escapeAttr(p.nom)}" oninput="syncNcOrdreList()">
         </div>
         <div class="pi-field f-tel">
           <label>Téléphone</label>
           <input type="text" class="p-input-tel" value="${escapeAttr(p.telephone || '')}">
-        </div>
-        <div class="order-btns">
-          <button type="button" onclick="moveNcRow(this, -1)">▲</button>
-          <button type="button" onclick="moveNcRow(this, 1)">▼</button>
         </div>
       </div>
       <div class="pi-row2">
@@ -1268,38 +1418,72 @@ function openNouveauCycleModal(){
           <label>Cotisation / tour (F)</label>
           <input type="number" class="p-input-montant" value="${p.montant_cotisation}">
         </div>
-        <div class="pi-field f-pactole">
-          <label>Pactole à recevoir (F)</label>
-          <input type="number" class="p-input-pactole" value="${p.pactole}">
-        </div>
       </div>
-      <label class="groupe-toggle">
-        <input type="checkbox" class="p-input-groupe" ${groupe ? 'checked' : ''} onchange="refreshNcOrderBadges()">
-        <span>Touche la même échéance que le participant précédent</span>
-      </label>
+      <div class="tranches-zone">
+        <div class="tranches-label">Tranches à recevoir</div>
+        <div class="tranches-list"></div>
+        <button type="button" class="add-tranche-btn" onclick="addNcTranche(this)">+ Ajouter une tranche</button>
+      </div>
     `;
     wrap.appendChild(row);
+
+    // Une ligne de tranche par réception existante, montants pré-remplis.
+    (p.receptions || []).forEach(r => ajouterTrancheNc(row, r.pactole));
   });
-  refreshNcOrderBadges();
+
+  syncNcOrdreList();
   document.getElementById('nc-overlay').classList.add('active');
 }
 
-function closeNouveauCycleModal(){
-  document.getElementById('nc-overlay').classList.remove('active');
+function ajouterTrancheNc(row, montant){
+  const list = row.querySelector('.tranches-list');
+  const tr = document.createElement('div');
+  tr.className = 'tranche-row';
+  tr.dataset.tkey = uid();
+  tr.innerHTML = `
+    <span class="tranche-num"></span>
+    <input type="number" class="p-input-pactole" placeholder="Montant reçu (F)" value="${montant != null ? montant : ''}" oninput="syncNcOrdreList()">
+    <button type="button" class="rm-tranche" onclick="removeNcTranche(this)">✕</button>
+  `;
+  list.appendChild(tr);
+  refreshTrancheNums(row);
 }
 
-function moveNcRow(btn, direction){
+function addNcTranche(btn){
+  ajouterTrancheNc(btn.closest('.participant-input-row'));
+  syncNcOrdreList();
+}
+
+function removeNcTranche(btn){
   const row = btn.closest('.participant-input-row');
+  const list = row.querySelector('.tranches-list');
+  if(list.children.length <= 1) return;
+  btn.closest('.tranche-row').remove();
+  refreshTrancheNums(row);
+  syncNcOrdreList();
+}
+
+function syncNcOrdreList(){
+  construireOrdreList('#nc-participant-inputs', '#nc-ordre-list', 'refreshNcOrdreBadges()', 'moveNcOrdreRow');
+  refreshNcOrdreBadges();
+}
+
+function moveNcOrdreRow(btn, direction){
+  const row = btn.closest('.ordre-row');
   if(direction === -1 && row.previousElementSibling){
     row.parentElement.insertBefore(row, row.previousElementSibling);
   } else if(direction === 1 && row.nextElementSibling){
     row.parentElement.insertBefore(row.nextElementSibling, row);
   }
-  refreshNcOrderBadges();
+  refreshNcOrdreBadges();
 }
 
-function refreshNcOrderBadges(){
-  calculerBadgesEcheance('#nc-participant-inputs');
+function refreshNcOrdreBadges(){
+  calculerOrdreBadges('#nc-ordre-list');
+}
+
+function closeNouveauCycleModal(){
+  document.getElementById('nc-overlay').classList.remove('active');
 }
 
 function escapeAttr(s){ return String(s).replace(/"/g, '&quot;'); }
@@ -1310,43 +1494,63 @@ function saveNouveauCycle(){
   const errorEl = document.getElementById('nc-error');
   errorEl.textContent = '';
 
+  const echeanceParTranche = {};
+  document.querySelectorAll('#nc-ordre-list .ordre-row').forEach(r => {
+    echeanceParTranche[r.dataset.tkey] = Number(r.dataset.echeance) || 1;
+  });
+
   let hasError = false;
   const updates = [];
   rows.forEach(row => {
-    const id = row.dataset.id;
     const nom = row.querySelector('.p-input-nom').value.trim();
     const tel = row.querySelector('.p-input-tel').value.trim();
     const montant = parseInt(row.querySelector('.p-input-montant').value, 10);
-    const pactole = parseInt(row.querySelector('.p-input-pactole').value, 10);
-    const echeance = Number(row.dataset.echeance) || 1;
-    if(!nom || !montant || montant <= 0 || !pactole || pactole <= 0) hasError = true;
-    updates.push({ id, nom, telephone: tel, montant_cotisation: montant, pactole, ordre_tour: echeance });
+    if(!nom || !montant || montant <= 0) hasError = true;
+
+    const receptions = [];
+    row.querySelectorAll('.tranche-row').forEach(tr => {
+      const pactole = parseInt(tr.querySelector('.p-input-pactole').value, 10);
+      if(!pactole || pactole <= 0) hasError = true;
+      receptions.push({
+        id: uid(),
+        ordre_tour: echeanceParTranche[tr.dataset.tkey] || 1,
+        pactole
+      });
+    });
+
+    updates.push({ id: row.dataset.id, nom, telephone: tel, montant_cotisation: montant, receptions });
   });
 
   if(hasError){
-    errorEl.textContent = "Chaque participant a besoin d'un nom, d'une cotisation et d'un pactole valides.";
+    errorEl.textContent = "Chaque participant a besoin d'un nom, d'une cotisation et de tranches valides.";
     return;
   }
+
+  // Renumérotation pour garder des échéances consécutives.
+  const tousOrdres = updates.flatMap(u => u.receptions.map(r => r.ordre_tour));
+  const uniques = [...new Set(tousOrdres)].sort((a,b) => a - b);
+  const remap = {};
+  uniques.forEach((e, i) => remap[e] = i + 1);
 
   updates.forEach(u => {
     const p = t.participants.find(x => x.id === u.id);
     p.nom = u.nom;
     p.telephone = u.telephone;
     p.montant_cotisation = u.montant_cotisation;
-    p.pactole = u.pactole;
-    p.ordre_tour = u.ordre_tour;
+    p.receptions = u.receptions
+      .map(r => ({ ...r, ordre_tour: remap[r.ordre_tour] }))
+      .sort((a,b) => a.ordre_tour - b.ordre_tour);
   });
 
   t.cycle += 1;
   t.tour_actuel = 1;
-  const premiersBeneficiaires = participantsDuTour(t, 1);
   const dernierTour = t.tours[t.tours.length - 1];
   const nouveauTour = {
     numero_tour: t.tours.length + 1,
     cycle: t.cycle,
     tour_dans_cycle: 1,
     date_prevue: ajouterPeriodes(dernierTour.date_prevue, t.frequence, 1),
-    beneficiaires_ids: premiersBeneficiaires.map(p => p.id),
+    beneficiaires: figerBeneficiaires(t, 1),
     statut: 'en_cours',
     recu: false,
     cotisations: {}
@@ -1362,36 +1566,39 @@ function saveNouveauCycle(){
 /* ---------- Réorganisation de l'ordre ---------- */
 function openReorderModal(){
   const t = data.tontines.find(x => x.id === currentTontineId);
-  const locked = t.participants.filter(p => p.ordre_tour < t.tour_actuel).sort((a,b) => a.ordre_tour - b.ordre_tour);
-  const movable = t.participants.filter(p => p.ordre_tour >= t.tour_actuel).sort((a,b) => a.ordre_tour - b.ordre_tour);
+  const toutes = toutesReceptions(t);
+  const passees = toutes.filter(x => x.reception.ordre_tour < t.tour_actuel);
+  const aVenir = toutes.filter(x => x.reception.ordre_tour >= t.tour_actuel);
 
   const lockedEl = document.getElementById('reorder-locked-list');
-  lockedEl.innerHTML = locked.length
-    ? `<div class="reorder-locked">Déjà passés (ordre figé) : ${locked.map(p => escapeHtml(p.nom)).join(', ')}</div>`
+  lockedEl.innerHTML = passees.length
+    ? `<div class="reorder-locked">Déjà passées (figées) : ${passees.map(x => {
+        const idx = indexTranche(x.participant, x.reception);
+        return escapeHtml(x.participant.nom) + (idx.total > 1 ? ` (${idx.numero}/${idx.total})` : '');
+      }).join(', ')}</div>`
     : '';
 
   const list = document.getElementById('reorder-list');
   list.innerHTML = '';
-  movable.forEach((p, idx) => {
-    const groupe = idx > 0 && movable[idx - 1].ordre_tour === p.ordre_tour;
+  aVenir.forEach((x, i) => {
+    const groupe = i > 0 && aVenir[i - 1].reception.ordre_tour === x.reception.ordre_tour;
+    const idx = indexTranche(x.participant, x.reception);
     const row = document.createElement('div');
-    row.className = 'reorder-row';
-    row.dataset.id = p.id;
+    row.className = 'ordre-row';
+    row.dataset.rid = x.reception.id;
     row.innerHTML = `
-      <div style="flex:1;">
-        <div class="r-line">
-          <span class="r-badge"></span>
-          <span class="r-name">${escapeHtml(p.nom)}</span>
-          <span class="r-pactole">${fmt(p.pactole)} F</span>
-          <div class="order-btns">
-            <button type="button" onclick="moveReorderRow(this, -1)">▲</button>
-            <button type="button" onclick="moveReorderRow(this, 1)">▼</button>
-          </div>
-        </div>
-        <label class="groupe-toggle" style="padding-left:30px; margin-top:6px;">
-          <input type="checkbox" class="r-groupe" ${groupe ? 'checked' : ''} onchange="refreshReorderButtons()">
-          <span>Même échéance que le précédent</span>
-        </label>
+      <span class="o-badge"></span>
+      <div class="o-info">
+        <div class="o-nom">${escapeHtml(x.participant.nom)} ${idx.total > 1 ? `<span class="o-tranche">tranche ${idx.numero}/${idx.total}</span>` : ''}</div>
+        <div class="o-montant">${fmt(x.reception.pactole)} F</div>
+      </div>
+      <label class="o-groupe-wrap">
+        <input type="checkbox" class="o-groupe" ${groupe ? 'checked' : ''} onchange="refreshReorderButtons()">
+        <span>même échéance</span>
+      </label>
+      <div class="order-btns">
+        <button type="button" onclick="moveReorderRow(this, -1)">▲</button>
+        <button type="button" onclick="moveReorderRow(this, 1)">▼</button>
       </div>
     `;
     list.appendChild(row);
@@ -1405,7 +1612,7 @@ function closeReorderModal(){
 }
 
 function moveReorderRow(btn, direction){
-  const row = btn.closest('.reorder-row');
+  const row = btn.closest('.ordre-row');
   if(direction === -1 && row.previousElementSibling){
     row.parentElement.insertBefore(row, row.previousElementSibling);
   } else if(direction === 1 && row.nextElementSibling){
@@ -1416,18 +1623,18 @@ function moveReorderRow(btn, direction){
 
 function refreshReorderButtons(){
   const t = data.tontines.find(x => x.id === currentTontineId);
-  const rows = document.querySelectorAll('#reorder-list .reorder-row');
+  const rows = document.querySelectorAll('#reorder-list .ordre-row');
   // La numérotation reprend à l'échéance en cours : les tours passés sont figés.
   let echeance = t.tour_actuel - 1;
   rows.forEach((row, i) => {
-    const cb = row.querySelector('.r-groupe');
+    const cb = row.querySelector('.o-groupe');
     const groupe = i > 0 && cb.checked;
     if(!groupe) echeance++;
     row.dataset.echeance = echeance;
-    row.querySelector('.r-badge').textContent = echeance;
-    row.querySelector('.r-badge').classList.toggle('groupe', groupe);
-    const wrapper = cb.closest('.groupe-toggle');
-    wrapper.style.display = i === 0 ? 'none' : 'flex';
+    row.querySelector('.o-badge').textContent = echeance;
+    row.querySelector('.o-badge').classList.toggle('groupe', groupe);
+    row.classList.toggle('en-groupe', groupe);
+    cb.closest('.o-groupe-wrap').style.visibility = i === 0 ? 'hidden' : 'visible';
     row.querySelector('.order-btns button:first-child').disabled = (i === 0);
     row.querySelector('.order-btns button:last-child').disabled = (i === rows.length - 1);
   });
@@ -1435,16 +1642,24 @@ function refreshReorderButtons(){
 
 function saveReorder(){
   const t = data.tontines.find(x => x.id === currentTontineId);
-  const rows = document.querySelectorAll('#reorder-list .reorder-row');
+  const rows = document.querySelectorAll('#reorder-list .ordre-row');
 
   rows.forEach(r => {
-    const p = t.participants.find(x => x.id === r.dataset.id);
-    p.ordre_tour = Number(r.dataset.echeance);
+    const rid = r.dataset.rid;
+    t.participants.forEach(p => {
+      const rec = (p.receptions || []).find(x => x.id === rid);
+      if(rec) rec.ordre_tour = Number(r.dataset.echeance);
+    });
+  });
+
+  // Les réceptions de chaque participant restent triées.
+  t.participants.forEach(p => {
+    if(p.receptions) p.receptions.sort((a,b) => a.ordre_tour - b.ordre_tour);
   });
 
   // Les bénéficiaires du tour en cours suivent le nouveau groupe de tête.
   const tour = tourEnCours(t);
-  tour.beneficiaires_ids = participantsDuTour(t, t.tour_actuel).map(p => p.id);
+  tour.beneficiaires = figerBeneficiaires(t, t.tour_actuel);
 
   saveData(data);
   closeReorderModal();
@@ -1476,6 +1691,7 @@ function openCreateModal(){
   document.getElementById('f-date-debut').value = toISO(finDeMois);
   document.getElementById('form-error').textContent = '';
   document.getElementById('participant-inputs').innerHTML = '';
+  document.getElementById('ordre-list').innerHTML = '';
   participantInputCount = 0;
   setMontantMode('fixe');
   addParticipantInput();
@@ -1491,20 +1707,16 @@ function addParticipantInput(){
   const wrap = document.getElementById('participant-inputs');
   const row = document.createElement('div');
   row.className = 'participant-input-row';
+  row.dataset.pkey = uid();
   row.innerHTML = `
     <div class="pi-row1">
-      <span class="p-order-badge"></span>
       <div class="pi-field f-nom">
         <label>Nom</label>
-        <input type="text" class="p-input-nom">
+        <input type="text" class="p-input-nom" oninput="syncOrdreList()">
       </div>
       <div class="pi-field f-tel">
         <label>Téléphone</label>
         <input type="text" class="p-input-tel">
-      </div>
-      <div class="order-btns">
-        <button type="button" onclick="moveParticipantRow(this, -1)">▲</button>
-        <button type="button" onclick="moveParticipantRow(this, 1)">▼</button>
       </div>
       <button class="rm" onclick="removeParticipantRow(this)">✕</button>
     </div>
@@ -1513,64 +1725,155 @@ function addParticipantInput(){
         <label>Cotisation / tour (F)</label>
         <input type="number" class="p-input-montant">
       </div>
-      <div class="pi-field f-pactole">
-        <label>Pactole à recevoir (F)</label>
-        <input type="number" class="p-input-pactole">
-      </div>
     </div>
-    <label class="groupe-toggle">
-      <input type="checkbox" class="p-input-groupe" onchange="refreshOrderBadges()">
-      <span>Touche la même échéance que le participant précédent</span>
-    </label>
+    <div class="tranches-zone">
+      <div class="tranches-label">Tranches à recevoir</div>
+      <div class="tranches-list"></div>
+      <button type="button" class="add-tranche-btn" onclick="addTrancheInput(this)">+ Ajouter une tranche</button>
+    </div>
   `;
   wrap.appendChild(row);
-  refreshOrderBadges();
+  ajouterTranche(row);
+  syncOrdreList();
+}
+
+// Une tranche = une réception. Un participant peut en avoir plusieurs.
+function ajouterTranche(row){
+  const list = row.querySelector('.tranches-list');
+  const tr = document.createElement('div');
+  tr.className = 'tranche-row';
+  tr.dataset.tkey = uid();
+  tr.innerHTML = `
+    <span class="tranche-num"></span>
+    <input type="number" class="p-input-pactole" placeholder="Montant reçu (F)" oninput="syncOrdreList()">
+    <button type="button" class="rm-tranche" onclick="removeTranche(this)">✕</button>
+  `;
+  list.appendChild(tr);
+  refreshTrancheNums(row);
+}
+
+function addTrancheInput(btn){
+  ajouterTranche(btn.closest('.participant-input-row'));
+  syncOrdreList();
+}
+
+function removeTranche(btn){
+  const row = btn.closest('.participant-input-row');
+  const list = row.querySelector('.tranches-list');
+  // On garde toujours au moins une tranche par participant.
+  if(list.children.length <= 1) return;
+  btn.closest('.tranche-row').remove();
+  refreshTrancheNums(row);
+  syncOrdreList();
+}
+
+function refreshTrancheNums(row){
+  const trs = row.querySelectorAll('.tranche-row');
+  trs.forEach((tr, i) => {
+    tr.querySelector('.tranche-num').textContent = trs.length > 1 ? `${i+1}/${trs.length}` : '1';
+    tr.querySelector('.rm-tranche').style.visibility = trs.length > 1 ? 'visible' : 'hidden';
+  });
 }
 
 function removeParticipantRow(btn){
   btn.closest('.participant-input-row').remove();
-  refreshOrderBadges();
+  syncOrdreList();
 }
 
-function moveParticipantRow(btn, direction){
-  const row = btn.closest('.participant-input-row');
+/* ---------- Ordre de passage (liste de tranches) ---------- */
+// Reconstruit une liste d'ordre depuis des lignes participants, en conservant
+// l'ordre et les groupements déjà choisis pour les tranches encore présentes.
+function construireOrdreList(selecteurParticipants, selecteurOrdre, onchangeFn, moveFn){
+  const container = document.querySelector(selecteurOrdre);
+  if(!container) return;
+
+  const existant = Array.from(container.querySelectorAll('.ordre-row')).map(r => ({
+    key: r.dataset.tkey,
+    groupe: r.querySelector('.o-groupe').checked
+  }));
+
+  const tranches = [];
+  document.querySelectorAll(selecteurParticipants + ' .participant-input-row').forEach(prow => {
+    const nom = prow.querySelector('.p-input-nom').value.trim();
+    const trs = prow.querySelectorAll('.tranche-row');
+    trs.forEach((tr, i) => {
+      tranches.push({
+        key: tr.dataset.tkey,
+        nom: nom || 'Sans nom',
+        montant: parseInt(tr.querySelector('.p-input-pactole').value, 10) || 0,
+        label: trs.length > 1 ? `tranche ${i+1}/${trs.length}` : ''
+      });
+    });
+  });
+
+  const ordre = [];
+  existant.forEach(e => {
+    const t = tranches.find(x => x.key === e.key);
+    if(t) ordre.push({ ...t, groupe: e.groupe });
+  });
+  tranches.forEach(t => {
+    if(!ordre.find(x => x.key === t.key)) ordre.push({ ...t, groupe: false });
+  });
+
+  container.innerHTML = '';
+  ordre.forEach(o => {
+    const row = document.createElement('div');
+    row.className = 'ordre-row';
+    row.dataset.tkey = o.key;
+    row.innerHTML = `
+      <span class="o-badge"></span>
+      <div class="o-info">
+        <div class="o-nom">${escapeHtml(o.nom)} ${o.label ? `<span class="o-tranche">${o.label}</span>` : ''}</div>
+        <div class="o-montant">${o.montant ? fmt(o.montant) + ' F' : '—'}</div>
+      </div>
+      <label class="o-groupe-wrap">
+        <input type="checkbox" class="o-groupe" ${o.groupe ? 'checked' : ''} onchange="${onchangeFn}">
+        <span>même échéance</span>
+      </label>
+      <div class="order-btns">
+        <button type="button" onclick="${moveFn}(this, -1)">▲</button>
+        <button type="button" onclick="${moveFn}(this, 1)">▼</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// Attribue les numéros d'échéance : une ligne "groupée" partage celui du dessus.
+function calculerOrdreBadges(selecteur){
+  const rows = document.querySelectorAll(selecteur + ' .ordre-row');
+  let echeance = 0;
+  rows.forEach((row, i) => {
+    const cb = row.querySelector('.o-groupe');
+    const groupe = i > 0 && cb.checked;
+    if(!groupe) echeance++;
+    row.dataset.echeance = echeance;
+    row.querySelector('.o-badge').textContent = echeance;
+    row.querySelector('.o-badge').classList.toggle('groupe', groupe);
+    row.classList.toggle('en-groupe', groupe);
+    cb.closest('.o-groupe-wrap').style.visibility = i === 0 ? 'hidden' : 'visible';
+    row.querySelector('.order-btns button:first-child').disabled = (i === 0);
+    row.querySelector('.order-btns button:last-child').disabled = (i === rows.length - 1);
+  });
+}
+
+function syncOrdreList(){
+  construireOrdreList('#participant-inputs', '#ordre-list', 'refreshOrdreBadges()', 'moveOrdreRow');
+  refreshOrdreBadges();
+}
+
+function moveOrdreRow(btn, direction){
+  const row = btn.closest('.ordre-row');
   if(direction === -1 && row.previousElementSibling){
     row.parentElement.insertBefore(row, row.previousElementSibling);
   } else if(direction === 1 && row.nextElementSibling){
     row.parentElement.insertBefore(row.nextElementSibling, row);
   }
-  refreshOrderBadges();
+  refreshOrdreBadges();
 }
 
-function refreshOrderBadges(){
-  calculerBadgesEcheance('#participant-inputs');
-}
-
-// Calcule le numéro d'échéance de chaque ligne : une ligne "groupée" partage le
-// numéro de la précédente au lieu d'en prendre un nouveau.
-function calculerBadgesEcheance(selecteur){
-  const rows = document.querySelectorAll(selecteur + ' .participant-input-row');
-  let echeance = 0;
-  rows.forEach((row, i) => {
-    const groupeCb = row.querySelector('.p-input-groupe');
-    const groupe = i > 0 && groupeCb && groupeCb.checked;
-    if(!groupe) echeance++;
-    row.dataset.echeance = echeance;
-
-    const badge = row.querySelector('.p-order-badge');
-    badge.textContent = echeance;
-    badge.classList.toggle('groupe', groupe);
-    row.classList.toggle('en-groupe', groupe);
-
-    // La première ligne ne peut pas être groupée avec une précédente.
-    const wrapper = groupeCb ? groupeCb.closest('.groupe-toggle') : null;
-    if(wrapper) wrapper.style.display = i === 0 ? 'none' : 'flex';
-
-    const up = row.querySelector('.order-btns button:first-child');
-    const down = row.querySelector('.order-btns button:last-child');
-    if(up) up.disabled = (i === 0);
-    if(down) down.disabled = (i === rows.length - 1);
-  });
+function refreshOrdreBadges(){
+  calculerOrdreBadges('#ordre-list');
 }
 
 function submitCreateTontine(){
@@ -1592,34 +1895,49 @@ function submitCreateTontine(){
   const participantsData = [];
   let montantError = false;
   let pactoleError = false;
+
+  // Échéance retenue pour chaque tranche, depuis la liste d'ordre de passage.
+  const echeanceParTranche = {};
+  document.querySelectorAll('#ordre-list .ordre-row').forEach(r => {
+    echeanceParTranche[r.dataset.tkey] = Number(r.dataset.echeance) || 1;
+  });
+
+  const totalTranches = document.querySelectorAll('#participant-inputs .tranche-row').length;
+
   rows.forEach(row => {
     const nomP = row.querySelector('.p-input-nom').value.trim();
     const tel = row.querySelector('.p-input-tel').value.trim();
-    const echeance = Number(row.dataset.echeance) || 1;
     const montantP = montantMode === 'fixe'
       ? montantGlobal
       : parseInt(row.querySelector('.p-input-montant').value, 10);
-    let pactoleP;
-    if(montantMode === 'fixe'){
-      pactoleP = montantGlobal * rows.length;
-    } else {
-      pactoleP = parseInt(row.querySelector('.p-input-pactole').value, 10);
-    }
-    if(nomP){
-      if(!montantP || montantP <= 0) montantError = true;
+    if(!nomP) return;
+    if(!montantP || montantP <= 0) montantError = true;
+
+    const receptions = [];
+    row.querySelectorAll('.tranche-row').forEach(tr => {
+      const pactoleP = montantMode === 'fixe'
+        ? montantGlobal * totalTranches
+        : parseInt(tr.querySelector('.p-input-pactole').value, 10);
       if(!pactoleP || pactoleP <= 0) pactoleError = true;
-      participantsData.push({nom: nomP, telephone: tel, montant_cotisation: montantP, pactole: pactoleP, ordre_tour: echeance});
-    }
+      receptions.push({
+        id: uid(),
+        ordre_tour: echeanceParTranche[tr.dataset.tkey] || 1,
+        pactole: pactoleP
+      });
+    });
+
+    participantsData.push({ nom: nomP, telephone: tel, montant_cotisation: montantP, receptions });
   });
 
   if(!nom){ errorEl.textContent = "Donne un nom à ta tontine."; return; }
   if(participantsData.length < 2){ errorEl.textContent = "Il faut au moins 2 participants."; return; }
   if(montantError){ errorEl.textContent = "Chaque participant doit avoir un montant de cotisation valide."; return; }
-  if(pactoleError){ errorEl.textContent = "Chaque participant doit avoir un pactole à recevoir valide."; return; }
+  if(pactoleError){ errorEl.textContent = "Chaque tranche doit avoir un montant à recevoir valide."; return; }
 
   // Les lignes vides ignorées peuvent laisser des trous dans la numérotation :
   // on renumérote pour garder des échéances consécutives.
-  const echeancesUniques = [...new Set(participantsData.map(p => p.ordre_tour))].sort((a,b) => a - b);
+  const tousOrdres = participantsData.flatMap(p => p.receptions.map(r => r.ordre_tour));
+  const echeancesUniques = [...new Set(tousOrdres)].sort((a,b) => a - b);
   const remap = {};
   echeancesUniques.forEach((e, i) => remap[e] = i + 1);
 
@@ -1629,18 +1947,20 @@ function submitCreateTontine(){
     nom: p.nom,
     telephone: p.telephone,
     montant_cotisation: p.montant_cotisation,
-    pactole: p.pactole,
-    ordre_tour: remap[p.ordre_tour]
+    receptions: p.receptions
+      .map(r => ({ ...r, ordre_tour: remap[r.ordre_tour] }))
+      .sort((a,b) => a.ordre_tour - b.ordre_tour)
   }));
 
   const dateDebutIso = document.getElementById('f-date-debut').value || toISO(new Date());
 
+  const tontineProvisoire = { participants };
   const premierTour = {
     numero_tour: 1,
     cycle: 1,
     tour_dans_cycle: 1,
     date_prevue: dateDebutIso,
-    beneficiaires_ids: participants.filter(p => p.ordre_tour === 1).map(p => p.id),
+    beneficiaires: figerBeneficiaires(tontineProvisoire, 1),
     statut: 'en_cours',
     recu: false,
     cotisations: {}
