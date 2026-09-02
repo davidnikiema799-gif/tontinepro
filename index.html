@@ -32,10 +32,13 @@
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
     background: radial-gradient(ellipse at top, #fdfaf4 0%, #f6efe1 60%, #f1e8d6 100%);
+    background-attachment: fixed;
     color: var(--paper);
     font-family: 'Space Grotesk', sans-serif;
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 0 0 60px 0;
+    -webkit-text-size-adjust: 100%;
   }
   .topbar{
     display:flex; align-items:center; justify-content:space-between;
@@ -370,6 +373,117 @@
   .reorder-locked{
     padding:8px 12px; font-size:12px; color:var(--slate); border-bottom:1px dashed var(--line);
     margin-bottom:10px;
+  }
+  /* ============ ADAPTATION MOBILE ============ */
+  @media (max-width: 700px){
+    body{ padding-bottom: 0; }
+
+    /* Barre de titre collante, avec la zone d'encoche respectée */
+    .topbar{
+      position:sticky; top:0; z-index:40;
+      padding: calc(14px + env(safe-area-inset-top, 0px)) 18px 14px;
+      background: rgba(250,245,234,0.92); backdrop-filter: blur(8px);
+    }
+    .brand{ font-size:19px; }
+
+    .container{ padding: 20px 16px calc(90px + env(safe-area-inset-bottom, 0px)); }
+
+    /* En-têtes : titre au-dessus, action en pleine largeur */
+    .page-head{ flex-direction:column; align-items:stretch; gap:14px; margin-bottom:20px; }
+    .page-head h1{ font-size:26px; }
+    .page-head p{ font-size:13.5px; }
+    .btn-primary{ width:100%; padding:15px 20px; font-size:15px; }
+    .page-head > div[style*="flex"]{ display:flex; gap:8px; }
+    .page-head > div[style*="flex"] .btn-ghost{ flex:1; text-align:center; }
+
+    /* Cibles tactiles confortables */
+    .btn-ghost{ padding:13px 14px; font-size:13.5px; }
+    .back-link{ padding:11px 16px; font-size:13.5px; }
+
+    /* Cartes en pleine largeur */
+    .tontine-grid{ grid-template-columns: 1fr; gap:14px; }
+    .tontine-card{ padding:18px; border-radius:14px; }
+    .tc-name{ font-size:18px; }
+    .tc-stats{ font-size:13.5px; line-height:1.8; }
+    .delete-btn{ width:34px; height:34px; font-size:14px; }
+
+    .empty-state{
+      padding:52px 24px; margin-top:8px;
+      background: var(--bg-panel); border:1px solid var(--line);
+      box-shadow: 0 1px 3px rgba(43,36,23,0.05);
+    }
+    .empty-state .big{ font-size:20px; }
+    .empty-state div:last-child{ font-size:14px; line-height:1.6; }
+
+    /* Onglets pleine largeur */
+    .tab-bar{ margin-bottom:20px; }
+    .tab-btn{ flex:1; justify-content:center; padding:14px 8px; font-size:14px; }
+
+    /* Roue redimensionnée pour l'écran */
+    .wheel-section{ gap:26px; }
+    .wheel-wrap{
+      width: min(340px, calc(100vw - 40px));
+      height: min(340px, calc(100vw - 40px));
+    }
+    .info-panel{ min-width:0; width:100%; }
+
+    /* Carte bénéficiaire empilée : le bouton passe dessous, pleine largeur */
+    .beneficiaire-card{ flex-direction:column; align-items:stretch; gap:14px; padding:16px; }
+    .recu-btn{ width:100%; padding:14px; font-size:13.5px; }
+
+    /* Lignes de paiement : plus hautes, coche plus grosse */
+    .participant-row{ padding:14px; }
+    .p-name{ font-size:15px; }
+    .p-phone{ font-size:11.5px; }
+    .check-btn{ width:40px; height:40px; font-size:16px; }
+
+    /* Modales en feuille qui remonte du bas */
+    .overlay{ padding:0; align-items:flex-end; }
+    .modal{
+      max-width:100%; border-radius:20px 20px 0 0; margin-bottom:0;
+      padding: 24px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+      max-height:92vh; overflow-y:auto;
+    }
+    .modal h2{ font-size:20px; }
+    .modal-actions{ flex-direction:column-reverse; gap:8px; }
+    .modal-actions button{ width:100%; padding:14px; font-size:15px; }
+
+    /* 16px minimum sur les champs : en dessous, iOS zoome tout seul à la saisie */
+    .field input, .field select, .participant-input-row input{ font-size:16px; padding:13px 12px; }
+    .field-row{ flex-direction:column; gap:0; }
+
+    /* Saisie participant : tout empilé, plus de champs écrasés côte à côte */
+    .participant-input-row{ padding:16px; }
+    .pi-row1{ flex-wrap:wrap; gap:10px; }
+    .pi-row1 .pi-field{ flex:1 1 100%; }
+    .pi-row2{ flex-direction:column; gap:10px; padding-left:0; }
+    .p-order-badge{
+      width:28px; height:28px; border-radius:50%;
+      background: var(--bg-panel); border:1px solid var(--line); font-size:12px;
+    }
+    .order-btns{ flex-direction:row; gap:6px; margin-left:auto; }
+    .order-btns button{ width:38px; height:34px; font-size:11px; }
+    .participant-input-row .rm{ width:38px; height:34px; }
+    .groupe-toggle{ padding-left:0; font-size:12.5px; padding-top:4px; }
+    .groupe-toggle input{ width:20px !important; height:20px; }
+    .add-participant-btn{ padding:14px; font-size:14px; }
+
+    .mode-toggle{ flex-direction:column; }
+    .mode-btn{ padding:13px; font-size:13.5px; }
+
+    /* Historique et réorganisation */
+    .cycle-header{ padding:14px; }
+    .reorder-row{ padding:14px; }
+    .r-line{ flex-wrap:wrap; }
+  }
+
+  /* Très petits écrans : la roue tient encore avec des nœuds réduits */
+  @media (max-width: 380px){
+    .node{ width:62px; height:62px; }
+    .node .n-name{ font-size:10px; }
+    .node .n-status{ font-size:8px; }
+    .node .n-mois{ font-size:8px; }
+    .wheel-center .amount{ font-size:22px; }
   }
 </style>
 </head>
@@ -949,7 +1063,12 @@ function finaliserTour(t, tour){
 function buildWheel(t, tour){
   const wheel = document.getElementById('wheel');
   wheel.innerHTML = '';
-  const R = 130, cx = 170, cy = 170;
+  // Dimensions calculées depuis la taille réelle du conteneur : la roue doit
+  // tenir aussi bien sur un petit téléphone que sur un écran large.
+  const taille = wheel.clientWidth || 340;
+  const nodeSize = taille < 320 ? 62 : 72;
+  const cx = taille / 2, cy = taille / 2;
+  const R = (taille - nodeSize) / 2 - 2;
   const nbParticipants = t.participants.length;
   const nbTours = nombreTours(t);
   const benefIds = beneficiairesDuTour(t, tour).map(b => b.id);
@@ -965,8 +1084,8 @@ function buildWheel(t, tour){
 
   ordonnes.forEach((p, i) => {
     const angle = (i / nbParticipants) * 2 * Math.PI - Math.PI/2;
-    const x = cx + R * Math.cos(angle) - 36;
-    const y = cy + R * Math.sin(angle) - 36;
+    const x = cx + R * Math.cos(angle) - nodeSize / 2;
+    const y = cy + R * Math.sin(angle) - nodeSize / 2;
     const node = document.createElement('div');
     let cls = 'node';
     const isCurrent = benefIds.includes(p.id);
