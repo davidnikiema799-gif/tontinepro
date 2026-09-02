@@ -409,6 +409,18 @@
   .n-tranche{ font-size:8px; color:var(--gold-soft); }
   .node.current .n-tranche{ color:#5c3f10; }
 
+  .brouillon-notice{
+    background: rgba(200,137,44,0.10); border:1px solid rgba(200,137,44,0.30);
+    border-radius:12px; padding:14px 16px; margin-bottom:24px;
+    font-size:13px; line-height:1.6; color:var(--paper);
+  }
+  .brouillon-actions{
+    display:flex; gap:10px; justify-content:flex-end; margin-top:28px;
+    padding-top:20px; border-top:1px solid var(--line);
+  }
+  .tontine-card.brouillon{ border-style:dashed; }
+  .status-pill.brouillon-pill{ background: rgba(200,137,44,0.15); color: var(--gold-soft); }
+
   .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
   .error-msg{ color: var(--brick); font-size:12px; margin-top:10px; }
 
@@ -545,7 +557,7 @@
 <body>
 
 <div class="topbar">
-  <div class="brand"><span class="dot"></span>TontinePro</div>
+  <div class="brand"><span class="dot"></span>TontinePro<span class="version-tag">v4</span></div>
 </div>
 
 <div class="container">
@@ -606,30 +618,80 @@
     </div>
   </div>
 
+  <!-- VUE BROUILLON (tontine pas encore lancée) -->
+  <div class="view" id="view-brouillon">
+    <div class="back-link" onclick="renderDashboard()">← Retour au tableau de bord</div>
+    <div class="page-head">
+      <div>
+        <h1 id="br-nom"></h1>
+        <p id="br-meta"></p>
+      </div>
+    </div>
+
+    <div class="brouillon-notice">
+      <b>Cette tontine n'est pas encore lancée.</b> Ajoute les participants au fur et à
+      mesure qu'ils se signalent, enregistre, et reviens plus tard. Le cycle démarrera
+      seulement quand tu cliqueras sur « Lancer le cycle ».
+    </div>
+
+    <div class="field">
+      <label>Participants et cotisations</label>
+      <div class="sub" id="participant-hint" style="margin-bottom:6px;"></div>
+      <div class="sub" style="margin-bottom:10px; font-size:12px;">Ajoute une tranche à quelqu'un qui cotise double et touche deux fois dans le cycle.</div>
+      <div id="participant-inputs"></div>
+      <button class="add-participant-btn" onclick="addParticipantInput()">+ Ajouter un participant</button>
+    </div>
+
+    <div class="field">
+      <label>Ordre de passage</label>
+      <div class="sub" style="margin-bottom:10px; font-size:12px;">Une ligne par tranche à recevoir. Coche « même échéance » quand deux tranches tombent le même mois.</div>
+      <div id="ordre-list"></div>
+    </div>
+
+    <div class="error-msg" id="br-error"></div>
+
+    <div class="brouillon-actions">
+      <button class="btn-ghost" onclick="enregistrerBrouillon(true)">Enregistrer</button>
+      <button class="btn-primary" onclick="openLancerModal()">Lancer le cycle →</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- LANCEMENT MODAL -->
+<div class="overlay" id="lancer-overlay">
+  <div class="modal" style="max-width:420px;">
+    <h2>Lancer le cycle</h2>
+    <div class="sub" id="lancer-sub"></div>
+    <div class="field">
+      <label>Première échéance</label>
+      <input type="date" id="f-date-debut">
+    </div>
+    <div class="error-msg" id="lancer-error"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeLancerModal()">Annuler</button>
+      <button class="btn-primary" onclick="lancerCycle()">Démarrer</button>
+    </div>
+  </div>
 </div>
 
 <!-- CREATE MODAL -->
 <div class="overlay" id="create-overlay">
   <div class="modal">
     <h2>Nouvelle tontine</h2>
-    <div class="sub">Renseigne les infos de base et la liste des participants, dans l'ordre de passage.</div>
+    <div class="sub">Crée la tontine maintenant, tu ajouteras les participants au fur et à mesure qu'ils se signalent.</div>
 
     <div class="field">
       <label>Nom de la tontine</label>
       <input type="text" id="f-nom" placeholder="Ex. Tontine Bureau">
     </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Première échéance</label>
-        <input type="date" id="f-date-debut">
-      </div>
-      <div class="field">
-        <label>Fréquence</label>
-        <select id="f-frequence">
-          <option value="hebdomadaire">Hebdomadaire</option>
-          <option value="mensuel" selected>Mensuel</option>
-        </select>
-      </div>
+
+    <div class="field">
+      <label>Fréquence</label>
+      <select id="f-frequence">
+        <option value="hebdomadaire">Hebdomadaire</option>
+        <option value="mensuel" selected>Mensuel</option>
+      </select>
     </div>
 
     <div class="field">
@@ -643,20 +705,6 @@
     <div class="field" id="field-montant-global">
       <label>Montant de cotisation (F CFA)</label>
       <input type="number" id="f-montant-global" placeholder="15000">
-    </div>
-
-    <div class="field">
-      <label>Participants et cotisations</label>
-      <div class="sub" id="participant-hint" style="margin-bottom:6px;"></div>
-      <div class="sub" style="margin-bottom:10px; font-size:12px;">Ajoute une tranche à quelqu'un qui cotise double et touche deux fois dans le cycle.</div>
-      <div id="participant-inputs" class="mode-fixe"></div>
-      <button class="add-participant-btn" onclick="addParticipantInput()">+ Ajouter un participant</button>
-    </div>
-
-    <div class="field">
-      <label>Ordre de passage</label>
-      <div class="sub" style="margin-bottom:10px; font-size:12px;">Une ligne par tranche à recevoir. Coche « même échéance » quand deux tranches tombent le même mois.</div>
-      <div id="ordre-list"></div>
     </div>
 
     <div class="error-msg" id="form-error"></div>
@@ -741,6 +789,9 @@ function loadData(){
   let migrated = false;
   (parsed.tontines || []).forEach(t => {
     if(t.cycle === undefined){ t.cycle = 1; migrated = true; }
+    // Les tontines existantes sont déjà lancées.
+    if(!t.statut || t.statut === 'active'){ t.statut = t.tours && t.tours.length ? 'active' : 'brouillon'; }
+    if(!t.mode_montant){ t.mode_montant = 'variable'; migrated = true; }
     if(t.montant_cotisation !== undefined){
       t.participants.forEach(p => {
         if(p.montant_cotisation === undefined) p.montant_cotisation = t.montant_cotisation;
@@ -750,7 +801,8 @@ function loadData(){
     }
     t.participants.forEach(p => {
       if(p.montant_cotisation === undefined || isNaN(p.montant_cotisation)) p.montant_cotisation = 0;
-      if(p.pactole === undefined || isNaN(p.pactole)){
+      // Ancien champ pactole : seulement pour les participants sans réceptions.
+      if(!p.receptions && (p.pactole === undefined || isNaN(p.pactole))){
         p.pactole = p.montant_cotisation * t.participants.length;
         migrated = true;
       }
@@ -981,10 +1033,43 @@ function renderDashboard(){
     return;
   }
 
-  sub.textContent = tontines.length + (tontines.length > 1 ? ' tontines actives' : ' tontine active');
+  const actives = tontines.filter(t => t.statut !== 'brouillon' && t.tours.length).length;
+  const brouillons = tontines.length - actives;
+  const parts = [];
+  if(actives) parts.push(`${actives} tontine${actives > 1 ? 's' : ''} active${actives > 1 ? 's' : ''}`);
+  if(brouillons) parts.push(`${brouillons} brouillon${brouillons > 1 ? 's' : ''}`);
+  sub.textContent = parts.join(' · ');
 
   let html = '<div class="tontine-grid">';
   tontines.forEach(t => {
+    // Carte simplifiée pour une tontine pas encore lancée.
+    if(t.statut === 'brouillon' || !t.tours.length){
+      const nbP = t.participants.length;
+      const nbT = nbP ? nombreTours(t) : 0;
+      html += `
+        <div class="tontine-card brouillon" onclick="openDetail('${t.id}')">
+          <div class="tc-top">
+            <div>
+              <div class="tc-name">${escapeHtml(t.nom)}</div>
+              <div class="tc-meta">${t.frequence}${t.mode_montant === 'fixe' ? ' · ' + fmt(t.montant_global) + ' F par tour' : ''}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="status-pill brouillon-pill">Brouillon</span>
+              <button class="delete-btn" onclick="event.stopPropagation(); deleteTontine('${t.id}')" title="Supprimer cette tontine">🗑</button>
+            </div>
+          </div>
+          <div class="tc-body">
+            <div class="tc-stats" style="padding:4px 0;">
+              ${nbP === 0
+                ? "Aucun participant enregistré.<br>Ajoute-les au fur et à mesure."
+                : `<b>${nbP}</b> participant${nbP > 1 ? 's' : ''} enregistré${nbP > 1 ? 's' : ''}<br><b>${nbT}</b> échéance${nbT > 1 ? 's' : ''} prévue${nbT > 1 ? 's' : ''}`}
+              <br><span style="color:var(--gold-soft);">Pas encore lancée →</span>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
     const tour = tourEnCours(t);
     const nbBenef = t.participants.length;
     const n = nombreTours(t);
@@ -1066,6 +1151,12 @@ function switchTab(name){
 }
 
 function openDetail(id){
+  const t = data.tontines.find(x => x.id === id);
+  // Une tontine en brouillon n'a pas encore de tour : on ouvre son écran de config.
+  if(t.statut === 'brouillon' || !t.tours.length){
+    openBrouillon(id);
+    return;
+  }
   currentTontineId = id;
   switchTab('paiements');
   renderDetail();
@@ -1675,27 +1766,15 @@ function setMontantMode(mode){
   document.getElementById('mode-fixe-btn').classList.toggle('active', mode === 'fixe');
   document.getElementById('mode-variable-btn').classList.toggle('active', mode === 'variable');
   document.getElementById('field-montant-global').style.display = mode === 'fixe' ? 'block' : 'none';
-  document.getElementById('participant-inputs').classList.toggle('mode-fixe', mode === 'fixe');
-  document.getElementById('participant-hint').textContent = mode === 'fixe'
-    ? "Tout le monde cotise le même montant et reçoit la même part le jour de son tour."
-    : "Chaque participant définit sa propre cotisation par tour ET son propre pactole à recevoir — utile quand plusieurs personnes se partagent une part, ou que chacun vise un montant différent.";
 }
 
 function openCreateModal(){
   document.getElementById('f-nom').value = '';
   document.getElementById('f-montant-global').value = '';
   document.getElementById('f-frequence').value = 'mensuel';
-  // Par défaut, première échéance à la fin du mois en cours.
-  const finDeMois = new Date();
-  finDeMois.setMonth(finDeMois.getMonth() + 1, 0);
-  document.getElementById('f-date-debut').value = toISO(finDeMois);
   document.getElementById('form-error').textContent = '';
-  document.getElementById('participant-inputs').innerHTML = '';
-  document.getElementById('ordre-list').innerHTML = '';
   participantInputCount = 0;
   setMontantMode('fixe');
-  addParticipantInput();
-  addParticipantInput();
   document.getElementById('create-overlay').classList.add('active');
 }
 function closeCreateModal(){
@@ -1703,27 +1782,36 @@ function closeCreateModal(){
 }
 
 function addParticipantInput(){
+  const row = creerLigneParticipant(null);
+  ajouterTranche(row);
+  syncOrdreList();
+  return row;
+}
+
+// Crée une ligne d'éditeur, pré-remplie si un participant existant est fourni.
+function creerLigneParticipant(p){
   participantInputCount++;
   const wrap = document.getElementById('participant-inputs');
   const row = document.createElement('div');
   row.className = 'participant-input-row';
   row.dataset.pkey = uid();
+  if(p) row.dataset.id = p.id;
   row.innerHTML = `
     <div class="pi-row1">
       <div class="pi-field f-nom">
         <label>Nom</label>
-        <input type="text" class="p-input-nom" oninput="syncOrdreList()">
+        <input type="text" class="p-input-nom" value="${p ? escapeAttr(p.nom) : ''}" oninput="syncOrdreList()">
       </div>
       <div class="pi-field f-tel">
         <label>Téléphone</label>
-        <input type="text" class="p-input-tel">
+        <input type="text" class="p-input-tel" value="${p ? escapeAttr(p.telephone || '') : ''}">
       </div>
       <button class="rm" onclick="removeParticipantRow(this)">✕</button>
     </div>
     <div class="pi-row2">
       <div class="pi-field f-montant">
         <label>Cotisation / tour (F)</label>
-        <input type="number" class="p-input-montant">
+        <input type="number" class="p-input-montant" value="${p ? p.montant_cotisation : ''}">
       </div>
     </div>
     <div class="tranches-zone">
@@ -1733,23 +1821,24 @@ function addParticipantInput(){
     </div>
   `;
   wrap.appendChild(row);
-  ajouterTranche(row);
-  syncOrdreList();
+  return row;
 }
 
 // Une tranche = une réception. Un participant peut en avoir plusieurs.
-function ajouterTranche(row){
+function ajouterTranche(row, montant, receptionId){
   const list = row.querySelector('.tranches-list');
   const tr = document.createElement('div');
   tr.className = 'tranche-row';
   tr.dataset.tkey = uid();
+  if(receptionId) tr.dataset.rid = receptionId;
   tr.innerHTML = `
     <span class="tranche-num"></span>
-    <input type="number" class="p-input-pactole" placeholder="Montant reçu (F)" oninput="syncOrdreList()">
+    <input type="number" class="p-input-pactole" placeholder="Montant reçu (F)" value="${montant != null ? montant : ''}" oninput="syncOrdreList()">
     <button type="button" class="rm-tranche" onclick="removeTranche(this)">✕</button>
   `;
   list.appendChild(tr);
   refreshTrancheNums(row);
+  return tr;
 }
 
 function addTrancheInput(btn){
@@ -1879,9 +1968,10 @@ function refreshOrdreBadges(){
 function submitCreateTontine(){
   const nom = document.getElementById('f-nom').value.trim();
   const frequence = document.getElementById('f-frequence').value;
-  const rows = document.querySelectorAll('#participant-inputs .participant-input-row');
   const errorEl = document.getElementById('form-error');
   errorEl.textContent = '';
+
+  if(!nom){ errorEl.textContent = "Donne un nom à ta tontine."; return; }
 
   let montantGlobal = null;
   if(montantMode === 'fixe'){
@@ -1892,99 +1982,214 @@ function submitCreateTontine(){
     }
   }
 
-  const participantsData = [];
-  let montantError = false;
-  let pactoleError = false;
+  const tontineId = uid();
+  // La tontine naît en brouillon : pas de tour tant qu'elle n'est pas lancée.
+  data.tontines.push({
+    id: tontineId,
+    nom, frequence,
+    mode_montant: montantMode,
+    montant_global: montantGlobal,
+    statut: 'brouillon',
+    cycle: 1,
+    tour_actuel: 1,
+    participants: [],
+    tours: []
+  });
 
-  // Échéance retenue pour chaque tranche, depuis la liste d'ordre de passage.
+  saveData(data);
+  closeCreateModal();
+  openBrouillon(tontineId);
+}
+
+/* ---------- Brouillon : constitution de la liste ---------- */
+function openBrouillon(id){
+  currentTontineId = id;
+  renderBrouillon();
+  showView('brouillon');
+}
+
+function renderBrouillon(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  montantMode = t.mode_montant || 'variable';
+
+  document.getElementById('br-nom').textContent = t.nom;
+  const nbP = t.participants.length;
+  document.getElementById('br-meta').textContent =
+    `Brouillon · ${nbP} participant${nbP > 1 ? 's' : ''} enregistré${nbP > 1 ? 's' : ''} · ${t.frequence}` +
+    (t.mode_montant === 'fixe' ? ` · ${fmt(t.montant_global)} F par tour` : '');
+  document.getElementById('br-error').textContent = '';
+
+  document.getElementById('participant-hint').textContent = t.mode_montant === 'fixe'
+    ? "Tout le monde cotise le même montant : les pactoles sont calculés automatiquement."
+    : "Chaque participant a sa propre cotisation et ses propres montants à recevoir.";
+
+  const wrap = document.getElementById('participant-inputs');
+  wrap.className = t.mode_montant === 'fixe' ? 'mode-fixe' : '';
+  wrap.innerHTML = '';
+  document.getElementById('ordre-list').innerHTML = '';
+
+  // Recharge les participants déjà enregistrés, dans l'ordre de passage.
+  const ordonnes = [...t.participants].sort((a, b) => {
+    const ra = Math.min(...(a.receptions || []).map(r => r.ordre_tour));
+    const rb = Math.min(...(b.receptions || []).map(r => r.ordre_tour));
+    return ra - rb;
+  });
+
+  ordonnes.forEach(p => {
+    const row = creerLigneParticipant(p);
+    (p.receptions || []).forEach(r => ajouterTranche(row, r.pactole, r.id));
+    if(!(p.receptions || []).length) ajouterTranche(row);
+  });
+
+  if(t.participants.length === 0) addParticipantInput();
+  syncOrdreList();
+}
+
+// Lit l'éditeur et renvoie la liste de participants, ou null si invalide.
+function lireBrouillon(t, errorEl){
+  const rows = document.querySelectorAll('#participant-inputs .participant-input-row');
   const echeanceParTranche = {};
   document.querySelectorAll('#ordre-list .ordre-row').forEach(r => {
     echeanceParTranche[r.dataset.tkey] = Number(r.dataset.echeance) || 1;
   });
 
   const totalTranches = document.querySelectorAll('#participant-inputs .tranche-row').length;
+  let montantError = false, pactoleError = false;
+  const participants = [];
 
   rows.forEach(row => {
     const nomP = row.querySelector('.p-input-nom').value.trim();
-    const tel = row.querySelector('.p-input-tel').value.trim();
-    const montantP = montantMode === 'fixe'
-      ? montantGlobal
-      : parseInt(row.querySelector('.p-input-montant').value, 10);
     if(!nomP) return;
+    const tel = row.querySelector('.p-input-tel').value.trim();
+    const montantP = t.mode_montant === 'fixe'
+      ? t.montant_global
+      : parseInt(row.querySelector('.p-input-montant').value, 10);
     if(!montantP || montantP <= 0) montantError = true;
 
     const receptions = [];
     row.querySelectorAll('.tranche-row').forEach(tr => {
-      const pactoleP = montantMode === 'fixe'
-        ? montantGlobal * totalTranches
+      const pactoleP = t.mode_montant === 'fixe'
+        ? t.montant_global * totalTranches
         : parseInt(tr.querySelector('.p-input-pactole').value, 10);
       if(!pactoleP || pactoleP <= 0) pactoleError = true;
       receptions.push({
-        id: uid(),
+        id: tr.dataset.rid || uid(),
         ordre_tour: echeanceParTranche[tr.dataset.tkey] || 1,
         pactole: pactoleP
       });
     });
 
-    participantsData.push({ nom: nomP, telephone: tel, montant_cotisation: montantP, receptions });
+    participants.push({
+      id: row.dataset.id || uid(),
+      nom: nomP,
+      telephone: tel,
+      montant_cotisation: montantP,
+      receptions
+    });
   });
 
-  if(!nom){ errorEl.textContent = "Donne un nom à ta tontine."; return; }
-  if(participantsData.length < 2){ errorEl.textContent = "Il faut au moins 2 participants."; return; }
-  if(montantError){ errorEl.textContent = "Chaque participant doit avoir un montant de cotisation valide."; return; }
-  if(pactoleError){ errorEl.textContent = "Chaque tranche doit avoir un montant à recevoir valide."; return; }
+  if(montantError){ errorEl.textContent = "Chaque participant doit avoir une cotisation valide."; return null; }
+  if(pactoleError){ errorEl.textContent = "Chaque tranche doit avoir un montant à recevoir valide."; return null; }
 
-  // Les lignes vides ignorées peuvent laisser des trous dans la numérotation :
-  // on renumérote pour garder des échéances consécutives.
-  const tousOrdres = participantsData.flatMap(p => p.receptions.map(r => r.ordre_tour));
-  const echeancesUniques = [...new Set(tousOrdres)].sort((a,b) => a - b);
+  // Renumérotation pour garder des échéances consécutives.
+  const tous = participants.flatMap(p => p.receptions.map(r => r.ordre_tour));
+  const uniques = [...new Set(tous)].sort((a,b) => a - b);
   const remap = {};
-  echeancesUniques.forEach((e, i) => remap[e] = i + 1);
-
-  const tontineId = uid();
-  const participants = participantsData.map(p => ({
-    id: uid(),
-    nom: p.nom,
-    telephone: p.telephone,
-    montant_cotisation: p.montant_cotisation,
-    receptions: p.receptions
+  uniques.forEach((e, i) => remap[e] = i + 1);
+  participants.forEach(p => {
+    p.receptions = p.receptions
       .map(r => ({ ...r, ordre_tour: remap[r.ordre_tour] }))
-      .sort((a,b) => a.ordre_tour - b.ordre_tour)
-  }));
+      .sort((a,b) => a.ordre_tour - b.ordre_tour);
+  });
 
-  const dateDebutIso = document.getElementById('f-date-debut').value || toISO(new Date());
+  return participants;
+}
 
-  const tontineProvisoire = { participants };
+function enregistrerBrouillon(avecMessage){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const errorEl = document.getElementById('br-error');
+  errorEl.textContent = '';
+
+  const participants = lireBrouillon(t, errorEl);
+  if(!participants) return false;
+
+  t.participants = participants;
+  saveData(data);
+  renderBrouillon();
+
+  if(avecMessage){
+    const n = participants.length;
+    errorEl.style.color = 'var(--green-text)';
+    errorEl.textContent = n === 0
+      ? "Enregistré. Ajoute des participants quand ils se signalent."
+      : `Enregistré : ${n} participant${n > 1 ? 's' : ''}. Tu peux revenir en ajouter plus tard.`;
+    setTimeout(() => { errorEl.textContent = ''; errorEl.style.color = ''; }, 4000);
+  }
+  return true;
+}
+
+function openLancerModal(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const errorEl = document.getElementById('br-error');
+  errorEl.style.color = '';
+  errorEl.textContent = '';
+
+  // On enregistre d'abord pour ne pas perdre les saisies en cours.
+  if(!enregistrerBrouillon(false)) return;
+
+  const tRefresh = data.tontines.find(x => x.id === currentTontineId);
+  if(tRefresh.participants.length < 2){
+    errorEl.textContent = "Il faut au moins 2 participants pour lancer le cycle.";
+    return;
+  }
+
+  const nbTours = nombreTours(tRefresh);
+  document.getElementById('lancer-sub').textContent =
+    `${tRefresh.participants.length} participants, ${nbTours} échéance${nbTours > 1 ? 's' : ''}. ` +
+    `Une fois lancé, l'ordre des tours déjà passés ne pourra plus être modifié.`;
+
+  const finDeMois = new Date();
+  finDeMois.setMonth(finDeMois.getMonth() + 1, 0);
+  document.getElementById('f-date-debut').value = toISO(finDeMois);
+  document.getElementById('lancer-error').textContent = '';
+  document.getElementById('lancer-overlay').classList.add('active');
+}
+
+function closeLancerModal(){
+  document.getElementById('lancer-overlay').classList.remove('active');
+}
+
+function lancerCycle(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const dateDebutIso = document.getElementById('f-date-debut').value;
+  if(!dateDebutIso){
+    document.getElementById('lancer-error').textContent = "Choisis la date de la première échéance.";
+    return;
+  }
+
   const premierTour = {
     numero_tour: 1,
     cycle: 1,
     tour_dans_cycle: 1,
     date_prevue: dateDebutIso,
-    beneficiaires: figerBeneficiaires(tontineProvisoire, 1),
+    beneficiaires: figerBeneficiaires(t, 1),
     statut: 'en_cours',
     recu: false,
     cotisations: {}
   };
-  participants.forEach(p => premierTour.cotisations[p.id] = 'attente');
+  t.participants.forEach(p => premierTour.cotisations[p.id] = 'attente');
 
-  const dateStr = new Date(dateDebutIso + 'T00:00:00')
+  t.date_debut_iso = dateDebutIso;
+  t.date_debut = new Date(dateDebutIso + 'T00:00:00')
     .toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
-
-  data.tontines.push({
-    id: tontineId,
-    nom, frequence,
-    date_debut: dateStr,
-    date_debut_iso: dateDebutIso,
-    tour_actuel: 1,
-    cycle: 1,
-    statut: 'active',
-    participants,
-    tours: [premierTour]
-  });
+  t.statut = 'active';
+  t.tour_actuel = 1;
+  t.cycle = 1;
+  t.tours = [premierTour];
 
   saveData(data);
-  closeCreateModal();
-  renderDashboard();
+  closeLancerModal();
+  openDetail(t.id);
 }
 
 /* ---------- Init ---------- */

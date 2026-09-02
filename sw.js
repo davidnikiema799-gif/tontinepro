@@ -1,6 +1,6 @@
 // Incrémente cette version à chaque mise à jour de l'app pour forcer
 // le rafraîchissement du cache sur les téléphones déjà installés.
-const CACHE = 'tontinepro-v3';
+const CACHE = 'tontinepro-v4';
 
 const ASSETS = [
   './',
