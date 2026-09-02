@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TontinePro</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c8892c">
+<meta name="description" content="Suivi des cotisations, des tours et des pactoles de vos tontines.">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TontinePro">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-panel: #ffffff;
+    --bg-panel-2: #f3ede0;
+    --gold: #c8892c;
+    --gold-soft: #a4691f;
+    --paper: #2b2417;
+    --slate: #837a68;
+    --green: #3f8a5c;
+    --green-dim: #e4f2e9;
+    --green-text: #2c6b45;
+    --brick: #c1552f;
+    --brick-dim: #fbe8de;
+    --brick-text: #a5441f;
+    --line: rgba(43,36,23,0.10);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: radial-gradient(ellipse at top, #fdfaf4 0%, #f6efe1 60%, #f1e8d6 100%);
+    color: var(--paper);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    padding: 0 0 60px 0;
+  }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{
+    font-family:'Fraunces', serif; font-size: 22px; font-weight: 600;
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand .dot{ width:10px;height:10px;border-radius:50%; background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+
+  .container{ max-width: 980px; margin: 0 auto; padding: 32px 24px; }
+  .view{ display:none; }
+  .view.active{ display:block; animation: fadeIn .35s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .page-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 28px; flex-wrap:wrap; gap:14px; }
+  .page-head h1{ font-family:'Fraunces'; font-weight:600; font-size:30px; }
+  .page-head p{ color:var(--slate); font-size:14px; margin-top:4px; }
+  .btn-primary{
+    background: var(--gold); color:#1b1204; border:none;
+    font-family:'Space Grotesk'; font-weight:600; font-size:14px;
+    padding: 11px 20px; border-radius:10px; cursor:pointer;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .btn-primary:hover{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(200,137,44,0.25); }
+  .btn-primary:disabled{ opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+  .btn-ghost{
+    background: var(--bg-panel); border:1px solid var(--line); color:var(--paper);
+    font-family:'Space Grotesk'; font-size:13px; font-weight:500;
+    padding:9px 16px; border-radius:10px; cursor:pointer;
+    box-shadow: 0 1px 2px rgba(43,36,23,0.05);
+    transition: all .15s;
+  }
+  .btn-ghost:hover{
+    border-color: rgba(200,137,44,0.5); background:#fff;
+    box-shadow: 0 2px 8px rgba(43,36,23,0.08); transform: translateY(-1px);
+  }
+
+  /* Empty state */
+  .empty-state{
+    text-align:center; padding: 70px 20px; color: var(--slate);
+    border: 1px dashed var(--line); border-radius:16px;
+  }
+  .empty-state .big{ font-family:'Fraunces'; font-size:22px; color:var(--paper); margin-bottom:8px;}
+
+  /* Dashboard cards */
+  .tontine-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:18px; }
+  .tontine-card{
+    background: var(--bg-panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 20px; cursor:pointer; transition: border-color .15s, transform .15s, box-shadow .15s;
+    box-shadow: 0 1px 3px rgba(43,36,23,0.05), 0 8px 20px rgba(43,36,23,0.04);
+  }
+  .tontine-card:hover{ border-color: rgba(200,137,44,0.45); transform: translateY(-2px); box-shadow: 0 4px 14px rgba(43,36,23,0.08); }
+  .tc-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .tc-name{ font-family:'Fraunces'; font-size:19px; font-weight:600; }
+  .tc-meta{ color:var(--slate); font-size:13px; margin-top:3px; }
+  .tc-body{ display:flex; align-items:center; gap:16px; margin-top:16px; }
+  .tc-stats{ font-size:13px; color:var(--slate); line-height:1.7; }
+  .tc-stats b{ color:var(--paper); font-family:'IBM Plex Mono'; font-weight:500; }
+  .status-pill{
+    font-size:11px; padding:3px 9px; border-radius:20px; white-space:nowrap;
+    font-family:'IBM Plex Mono'; letter-spacing:0.3px;
+    background: var(--green-dim); color: var(--green-text);
+  }
+  .delete-btn{
+    background:none; border:1px solid var(--line); color:var(--slate);
+    width:26px; height:26px; border-radius:8px; cursor:pointer; font-size:12px;
+    flex-shrink:0; transition: all .15s;
+  }
+  .delete-btn:hover{ border-color: var(--brick); color: var(--brick); background: var(--brick-dim); }
+
+  /* Wheel view */
+  .wheel-section{ display:flex; gap:48px; align-items:center; flex-wrap:wrap; justify-content:center; }
+  .wheel-wrap{ position:relative; width:340px; height:340px; flex-shrink:0; margin: 0 auto;}
+  .wheel-center{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    text-align:center; width:150px;
+  }
+  .wheel-center .amount{ font-family:'Fraunces'; font-size:26px; font-weight:700; color:var(--gold-soft); }
+  .wheel-center .label{ font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:1px; margin-top:2px;}
+  .wheel-center .tour{ font-size:13px; color:var(--paper); margin-top:8px; font-family:'IBM Plex Mono';}
+
+  .node{
+    position:absolute; width:72px; height:72px; border-radius:50%;
+    background: var(--bg-panel); border: 2px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:11px; text-align:center; line-height:1.25; transition: all .2s;
+  }
+  .node .n-mois{
+    font-size:9px; color:var(--gold-soft); font-family:'IBM Plex Mono';
+    text-transform:uppercase; letter-spacing:0.3px; font-weight:500;
+  }
+  .node.current .n-mois{ color:#5c3f10; }
+  .node .n-name{ font-weight:600; font-size:11px; }
+  .node .n-status{ font-size:9px; color:var(--slate); margin-top:1px; }
+  .node.paid{ border-color: var(--green); }
+  .node.due{ border-color: var(--brick); }
+  .node.current{
+    background: var(--gold); color:#1b1204; border-color: var(--gold);
+    box-shadow: 0 0 0 6px rgba(200,137,44,0.15), 0 0 20px rgba(200,137,44,0.4);
+    transform: scale(1.12);
+  }
+  .node.current .n-status{ color:#4a3410; font-weight:600; }
+  .node.current.recu{ box-shadow: 0 0 0 6px rgba(63,138,92,0.18), 0 0 20px rgba(63,138,92,0.4); border-color: var(--green); }
+  .node.past{ opacity: 0.45; }
+
+  .info-panel{ flex:1; min-width:280px; }
+  .info-panel h2{ font-family:'Fraunces'; font-size:20px; margin-bottom: 6px;}
+  .info-panel .sub{ color:var(--slate); font-size:13px; margin-bottom:20px; }
+
+  .participant-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 14px; border-radius:10px; background: var(--bg-panel);
+    border: 1px solid var(--line); margin-bottom:8px;
+    box-shadow: 0 1px 2px rgba(43,36,23,0.04);
+  }
+  .participant-row .p-left{ display:flex; align-items:center; gap:10px; }
+  .p-order{
+    width:26px; height:26px; border-radius:50%; background: var(--bg-panel-2); color:var(--slate);
+    display:flex; align-items:center; justify-content:center; font-size:11px; font-family:'IBM Plex Mono';
+  }
+  .p-name{ font-size:14px; font-weight:500; }
+  .p-phone{ font-size:11px; color:var(--slate); font-family:'IBM Plex Mono'; }
+  .check-btn{
+    width:28px; height:28px; border-radius:8px; border: 1.5px solid var(--brick);
+    background: var(--brick-dim); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    color: var(--brick-text); font-size:13px; transition: all .15s;
+  }
+  .check-btn.checked{ background: var(--green-dim); border-color: var(--green); color: var(--green-text); }
+
+  .beneficiaire-card{
+    background: linear-gradient(135deg, rgba(200,137,44,0.14), rgba(200,137,44,0.04));
+    border: 1px solid rgba(200,137,44,0.35);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 18px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .beneficiaire-card .b-left{ display:flex; align-items:center; gap:12px; }
+  .beneficiaire-card .b-icon{
+    width:36px; height:36px; border-radius:50%; background: var(--gold);
+    display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;
+  }
+  .beneficiaire-card .b-name{ font-weight:600; font-size:14px; }
+  .beneficiaire-card .b-sub{ font-size:11px; color:var(--slate); margin-top:1px; }
+  .recu-btn{
+    background: var(--brick-dim); border: 1.5px solid var(--brick); color: var(--brick-text);
+    font-family:'Space Grotesk'; font-weight:600; font-size:12px;
+    padding: 8px 14px; border-radius:9px; cursor:pointer; white-space:nowrap; flex-shrink:0;
+    transition: all .15s;
+  }
+  .recu-btn.checked{ background: var(--green-dim); border-color: var(--green); color: var(--green-text); }
+  .legend span{ display:flex; align-items:center; gap:6px; }
+  .legend .dot{ width:9px; height:9px; border-radius:50%; }
+
+  .tab-bar{
+    display:flex; gap:4px; margin-bottom:24px;
+    border-bottom:1px solid var(--line);
+  }
+  .tab-btn{
+    background:none; border:none; border-bottom:2px solid transparent;
+    color:var(--slate); font-family:'Space Grotesk'; font-size:14px; font-weight:500;
+    padding:10px 16px; cursor:pointer; transition: all .15s;
+    display:flex; align-items:center; gap:7px;
+  }
+  .tab-btn:hover{ color:var(--paper); }
+  .tab-btn.active{ color:var(--paper); border-bottom-color: var(--gold); font-weight:600; }
+  .tab-badge{
+    font-size:11px; font-family:'IBM Plex Mono'; padding:2px 7px; border-radius:20px;
+    background: var(--bg-panel-2); color:var(--slate);
+  }
+  .tab-btn.active .tab-badge{ background: var(--green-dim); color: var(--green-text); }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; animation: fadeIn .25s ease; }
+
+  .back-link{
+    color:var(--slate); font-size:13px; font-weight:500; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; margin-bottom:20px;
+    background: var(--bg-panel); border:1px solid var(--line);
+    padding:8px 14px; border-radius:10px;
+    box-shadow: 0 1px 2px rgba(43,36,23,0.05);
+    transition: all .15s;
+  }
+  .back-link:hover{
+    color:var(--paper); border-color: rgba(200,137,44,0.5); background:#fff;
+    box-shadow: 0 2px 8px rgba(43,36,23,0.08); transform: translateX(-2px);
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background: rgba(10,14,26,0.72); backdrop-filter: blur(3px);
+    display:none; align-items:flex-start; justify-content:center; padding: 40px 16px; overflow-y:auto; z-index:50;
+  }
+  .overlay.active{ display:flex; }
+  .modal{
+    background: var(--bg-panel); border:1px solid var(--line); border-radius:18px;
+    width:100%; max-width:520px; padding:28px; margin-bottom:40px;
+    box-shadow: 0 20px 50px rgba(43,36,23,0.18);
+  }
+  .modal h2{ font-family:'Fraunces'; font-size:22px; margin-bottom:4px; }
+  .modal .sub{ color:var(--slate); font-size:13px; margin-bottom:22px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12px; color:var(--slate); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px; }
+  .field input, .field select,
+  .participant-input-row input{
+    width:100%; background: var(--bg-panel-2); border:1px solid var(--line); color:var(--paper);
+    padding:10px 12px; border-radius:9px; font-family:'Space Grotesk'; font-size:14px;
+  }
+  .field input:focus, .field select:focus,
+  .participant-input-row input:focus{ outline:none; border-color: rgba(200,137,44,0.6); background:#fff; }
+  .field-row{ display:flex; gap:12px; }
+  .field-row .field{ flex:1; }
+
+  .mode-toggle{ display:flex; gap:6px; }
+  .mode-btn{
+    flex:1; background: var(--bg-panel-2); border:1px solid var(--line); color:var(--slate);
+    font-family:'Space Grotesk'; font-size:13px; padding:10px 12px; border-radius:9px; cursor:pointer;
+    transition: all .15s;
+  }
+  .mode-btn.active{ background: rgba(200,137,44,0.15); border-color: var(--gold); color: var(--gold-soft); font-weight:600; }
+
+  #participant-inputs.mode-fixe .pi-row2{ display:none; }
+  .participant-input-row{
+    background: var(--bg-panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:14px; margin-bottom:10px;
+  }
+  .pi-row1{ display:flex; gap:8px; align-items:flex-end; margin-bottom:10px; }
+  .pi-row2{ display:flex; gap:8px; align-items:flex-end; padding-left:32px; }
+  .pi-field{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .pi-field label{
+    font-size:10px; color:var(--slate); text-transform:uppercase; letter-spacing:0.5px; font-weight:500;
+  }
+  .pi-field.f-nom{ flex:1.3; }
+  .pi-field.f-tel{ flex:1; }
+  .pi-field.f-montant, .pi-field.f-pactole{ flex:1; }
+  .participant-input-row input{ background:#fff; }
+  .order-btns{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+  .order-btns button{
+    background:#fff; border:1px solid var(--line); color:var(--slate); border-radius:5px;
+    width:24px; height:18px; cursor:pointer; font-size:9px; line-height:1; padding:0;
+  }
+  .order-btns button:hover:not(:disabled){ border-color: rgba(200,137,44,0.5); color: var(--gold-soft); }
+  .order-btns button:disabled{ opacity:.25; cursor:not-allowed; }
+  .participant-input-row .rm{
+    background:#fff; border:1px solid var(--line); color:var(--slate); border-radius:9px;
+    width:38px; height:38px; cursor:pointer; flex-shrink:0; font-size:13px;
+  }
+  .participant-input-row .rm:hover{ border-color: var(--brick); color: var(--brick); background: var(--brick-dim); }
+  .p-order-badge{
+    width:24px; height:38px; display:flex; align-items:center; justify-content:center;
+    color:var(--slate); font-size:12px; font-family:'IBM Plex Mono'; flex-shrink:0; font-weight:600;
+  }
+  .add-participant-btn{
+    background:none; border:1px dashed var(--line); color:var(--slate);
+    width:100%; padding:9px; border-radius:9px; cursor:pointer; font-size:13px; margin-top:4px;
+  }
+  .add-participant-btn:hover{ border-color: rgba(200,137,44,0.5); color: var(--gold-soft); }
+
+  .cycle-section{ margin-bottom:12px; }
+  .cycle-header{
+    width:100%; display:flex; align-items:center; gap:10px;
+    background: var(--bg-panel-2); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; cursor:pointer; font-family:'Space Grotesk'; text-align:left;
+    transition: all .15s;
+  }
+  .cycle-header:hover{ border-color: rgba(200,137,44,0.45); }
+  .cycle-header.open{ border-color: rgba(200,137,44,0.4); background: rgba(200,137,44,0.08); }
+  .cy-arrow{ color:var(--slate); font-size:11px; transition: transform .15s; flex-shrink:0; }
+  .cycle-header.open .cy-arrow{ transform: rotate(90deg); }
+  .cy-title{ font-weight:600; font-size:14px; color:var(--paper); flex:1; }
+  .cy-plage{ display:block; font-size:11px; color:var(--slate); font-weight:400; margin-top:2px; }
+  .cy-meta{ font-size:11px; color:var(--slate); font-family:'IBM Plex Mono'; white-space:nowrap; }
+  .cycle-body{ padding-top:8px; padding-left:6px; }
+
+  .groupe-toggle{
+    display:flex; align-items:center; gap:8px; margin-top:10px; padding-left:32px;
+    font-size:11px; color:var(--slate); cursor:pointer; user-select:none;
+  }
+  .groupe-toggle input{ width:auto !important; margin:0; cursor:pointer; accent-color: var(--gold); }
+  .groupe-toggle:hover{ color:var(--paper); }
+  .participant-input-row.en-groupe{
+    border-left:3px solid var(--gold); margin-left:-3px;
+  }
+  .p-order-badge.groupe{ color: var(--gold-soft); }
+
+  .install-banner{
+    position:fixed; left:0; right:0; bottom:0; z-index:100;
+    display:none; align-items:center; gap:12px;
+    background: var(--bg-panel); border-top:1px solid var(--line);
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 24px rgba(43,36,23,0.12);
+    animation: slideUp .3s ease;
+  }
+  .install-banner.visible{ display:flex; }
+  @keyframes slideUp{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
+  .ib-icon{ width:42px; height:42px; border-radius:10px; flex-shrink:0; }
+  .ib-text{ flex:1; min-width:0; }
+  .ib-title{ font-weight:600; font-size:14px; }
+  .ib-sub{ font-size:11.5px; color:var(--slate); margin-top:2px; line-height:1.4; }
+  .ib-actions{ display:flex; gap:8px; align-items:center; flex-shrink:0; }
+  .ib-later{
+    background:none; border:none; color:var(--slate); font-family:'Space Grotesk';
+    font-size:12.5px; padding:8px 6px; cursor:pointer;
+  }
+  .ib-later:hover{ color:var(--paper); }
+  .ib-install{
+    background: var(--gold); color:#1b1204; border:none;
+    font-family:'Space Grotesk'; font-weight:600; font-size:13px;
+    padding:9px 18px; border-radius:10px; cursor:pointer; white-space:nowrap;
+  }
+  @media (max-width: 520px){
+    .install-banner{ flex-wrap:wrap; }
+    .ib-actions{ width:100%; justify-content:flex-end; }
+  }
+
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
+  .error-msg{ color: var(--brick); font-size:12px; margin-top:10px; }
+
+  .reorder-row{
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    background: var(--bg-panel-2); border-radius:9px; margin-bottom:8px;
+  }
+  .r-line{ display:flex; align-items:center; gap:10px; }
+  .r-badge{
+    width:24px; height:24px; border-radius:50%; background:#fff; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-family:'IBM Plex Mono'; color:var(--slate); flex-shrink:0;
+  }
+  .r-badge.groupe{ color: var(--gold-soft); border-color: rgba(200,137,44,0.5); }
+  .reorder-row .r-name{ flex:1; font-size:14px; }
+  .reorder-row .r-pactole{ font-size:11px; color:var(--slate); font-family:'IBM Plex Mono'; }
+  .reorder-locked{
+    padding:8px 12px; font-size:12px; color:var(--slate); border-bottom:1px dashed var(--line);
+    margin-bottom:10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>TontinePro</div>
+</div>
+
+<div class="container">
+
+  <!-- DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div class="page-head">
+      <div>
+        <h1>Tes tontines</h1>
+        <p id="dashboard-sub"></p>
+      </div>
+      <button class="btn-primary" onclick="openCreateModal()">+ Nouvelle tontine</button>
+    </div>
+    <div id="dashboard-content"></div>
+  </div>
+
+  <!-- DETAIL / WHEEL VIEW -->
+  <div class="view" id="view-detail">
+    <div class="back-link" onclick="renderDashboard()">← Retour au tableau de bord</div>
+    <div class="page-head">
+      <div>
+        <h1 id="detail-nom"></h1>
+        <p id="detail-meta"></p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-ghost" onclick="openHistoriqueModal()">Historique</button>
+        <button class="btn-ghost" onclick="openReorderModal()">Réorganiser l'ordre</button>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-paiements" onclick="switchTab('paiements')">Paiements <span class="tab-badge" id="tab-paiements-badge"></span></button>
+      <button class="tab-btn" id="tab-roue" onclick="switchTab('roue')">Roue du cycle</button>
+    </div>
+
+    <!-- ONGLET PAIEMENTS -->
+    <div class="tab-panel active" id="panel-paiements">
+      <h2 id="paiements-title" style="font-family:'Fraunces'; font-size:20px; margin-bottom:6px;"></h2>
+      <div class="sub" id="paiements-sub" style="color:var(--slate); font-size:13px; margin-bottom:20px;"></div>
+      <div id="participant-list"></div>
+    </div>
+
+    <!-- ONGLET ROUE -->
+    <div class="tab-panel" id="panel-roue">
+      <div class="wheel-section">
+        <div class="wheel-wrap" id="wheel"></div>
+        <div class="info-panel">
+          <h2 id="detail-tour-title"></h2>
+          <div class="sub" id="detail-tour-sub"></div>
+          <div id="beneficiaire-card"></div>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--gold)"></span>Bénéficiaire, pactole pas encore remis</span>
+            <span><span class="dot" style="background:var(--green)"></span>A payé / pactole remis</span>
+            <span><span class="dot" style="background:var(--brick)"></span>En attente</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CREATE MODAL -->
+<div class="overlay" id="create-overlay">
+  <div class="modal">
+    <h2>Nouvelle tontine</h2>
+    <div class="sub">Renseigne les infos de base et la liste des participants, dans l'ordre de passage.</div>
+
+    <div class="field">
+      <label>Nom de la tontine</label>
+      <input type="text" id="f-nom" placeholder="Ex. Tontine Bureau">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Première échéance</label>
+        <input type="date" id="f-date-debut">
+      </div>
+      <div class="field">
+        <label>Fréquence</label>
+        <select id="f-frequence">
+          <option value="hebdomadaire">Hebdomadaire</option>
+          <option value="mensuel" selected>Mensuel</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Mode de cotisation</label>
+      <div class="mode-toggle">
+        <button type="button" class="mode-btn active" id="mode-fixe-btn" onclick="setMontantMode('fixe')">Montant fixe pour tous</button>
+        <button type="button" class="mode-btn" id="mode-variable-btn" onclick="setMontantMode('variable')">Montant par participant</button>
+      </div>
+    </div>
+
+    <div class="field" id="field-montant-global">
+      <label>Montant de cotisation (F CFA)</label>
+      <input type="number" id="f-montant-global" placeholder="15000">
+    </div>
+
+    <div class="field">
+      <label>Participants, cotisation, pactole et ordre de passage</label>
+      <div class="sub" id="participant-hint" style="margin-bottom:6px;"></div>
+      <div class="sub" style="margin-bottom:10px; font-size:12px;">Coche « même échéance que le précédent » quand deux personnes ou plus touchent le même mois.</div>
+      <div id="participant-inputs" class="mode-fixe"></div>
+      <button class="add-participant-btn" onclick="addParticipantInput()">+ Ajouter un participant</button>
+    </div>
+
+    <div class="error-msg" id="form-error"></div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeCreateModal()">Annuler</button>
+      <button class="btn-primary" onclick="submitCreateTontine()">Créer la tontine</button>
+    </div>
+  </div>
+</div>
+
+<!-- REORDER MODAL -->
+<div class="overlay" id="reorder-overlay">
+  <div class="modal">
+    <h2>Réorganiser l'ordre</h2>
+    <div class="sub">Seuls les participants qui n'ont pas encore reçu leur pactole peuvent être déplacés. Ceux déjà passés restent figés dans l'historique.</div>
+    <div id="reorder-locked-list"></div>
+    <div id="reorder-list"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeReorderModal()">Annuler</button>
+      <button class="btn-primary" onclick="saveReorder()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOUVEAU CYCLE MODAL -->
+<div class="overlay" id="nc-overlay">
+  <div class="modal">
+    <h2 id="nc-title">🎉 Cycle terminé !</h2>
+    <div class="sub" id="nc-sub"></div>
+    <div id="nc-participant-inputs"></div>
+    <div class="error-msg" id="nc-error"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeNouveauCycleModal()">Plus tard</button>
+      <button class="btn-primary" onclick="saveNouveauCycle()">Démarrer le cycle suivant</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirm-overlay">
+  <div class="modal" style="max-width:420px;">
+    <h2 id="confirm-title">Confirmer</h2>
+    <div class="sub" id="confirm-message"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeConfirmModal()">Annuler</button>
+      <button class="btn-primary" id="confirm-ok-btn" onclick="confirmOk()" style="background:var(--brick);">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIQUE MODAL -->
+<div class="overlay" id="historique-overlay">
+  <div class="modal">
+    <h2>Historique par cycle</h2>
+    <div class="sub" id="historique-sub"></div>
+    <div id="historique-list"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeHistoriqueModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Stockage ---------- */
+const STORAGE_KEY = 'cotiseapp_data';
+
+function loadData(){
+  let parsed;
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    parsed = raw ? JSON.parse(raw) : { tontines: [] };
+  }catch(e){ parsed = { tontines: [] }; }
+
+  // Migration : anciennes tontines créées avec un montant global unique
+  // au lieu d'un montant par participant.
+  let migrated = false;
+  (parsed.tontines || []).forEach(t => {
+    if(t.cycle === undefined){ t.cycle = 1; migrated = true; }
+    if(t.montant_cotisation !== undefined){
+      t.participants.forEach(p => {
+        if(p.montant_cotisation === undefined) p.montant_cotisation = t.montant_cotisation;
+      });
+      delete t.montant_cotisation;
+      migrated = true;
+    }
+    t.participants.forEach(p => {
+      if(p.montant_cotisation === undefined || isNaN(p.montant_cotisation)) p.montant_cotisation = 0;
+      if(p.pactole === undefined || isNaN(p.pactole)){
+        p.pactole = p.montant_cotisation * t.participants.length;
+        migrated = true;
+      }
+    });
+    t.tours.forEach(tour => {
+      if(tour.recu === undefined){ tour.recu = false; migrated = true; }
+      // Migration : un tour peut désormais avoir plusieurs bénéficiaires.
+      if(!tour.beneficiaires_ids){
+        tour.beneficiaires_ids = [tour.beneficiaire_id];
+        migrated = true;
+      }
+    });
+    // Migration : les anciens tours ne savaient pas à quel cycle ils appartenaient.
+    // On le déduit du nombre de participants — approximatif si l'effectif a changé
+    // entre deux cycles, exact pour tous les tours créés désormais.
+    if(t.tours.some(tour => tour.cycle === undefined)){
+      const n = t.participants.length;
+      t.tours.forEach((tour, i) => {
+        if(tour.cycle === undefined){
+          tour.cycle = Math.floor(i / n) + 1;
+          tour.tour_dans_cycle = (i % n) + 1;
+        }
+      });
+      migrated = true;
+    }
+    // Migration : calcul des échéances pour les tontines créées avant le suivi des dates.
+    if(!t.date_debut_iso){
+      t.date_debut_iso = parseDateFr(t.date_debut) || toISO(new Date());
+      migrated = true;
+    }
+    if(t.tours.some(tour => !tour.date_prevue)){
+      t.tours.forEach((tour, i) => {
+        if(!tour.date_prevue) tour.date_prevue = ajouterPeriodes(t.date_debut_iso, t.frequence, i);
+      });
+      migrated = true;
+    }
+  });
+  if(migrated) saveData(parsed);
+
+  return parsed;
+}
+function saveData(data){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ---------- Dates et périodes ---------- */
+const MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+
+// Décale une date ISO de n périodes (mois ou semaines).
+function ajouterPeriodes(iso, frequence, n){
+  const d = new Date(iso + 'T00:00:00');
+  if(frequence === 'mensuel'){
+    const jour = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + n);
+    // Évite le débordement (31 janvier + 1 mois ne doit pas donner le 3 mars).
+    const dernierJour = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(jour, dernierJour));
+  } else {
+    d.setDate(d.getDate() + n * 7);
+  }
+  return toISO(d);
+}
+
+function toISO(d){
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+// Libellé lisible d'une échéance : "septembre 2026" en mensuel, "sem. du 8 sept." en hebdo.
+function labelPeriode(iso, frequence){
+  if(!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  if(frequence === 'mensuel'){
+    return `${MOIS_FR[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  return `sem. du ${d.getDate()} ${MOIS_FR[d.getMonth()].slice(0,4)}.`;
+}
+
+function parseDateFr(str){
+  // Convertit "1 septembre 2026" (ancien format stocké) en ISO.
+  if(!str) return null;
+  const m = String(str).match(/(\d{1,2})\s+([a-zéèûôî]+)\s+(\d{4})/i);
+  if(!m) return null;
+  const idx = MOIS_FR.indexOf(m[2].toLowerCase());
+  if(idx === -1) return null;
+  return toISO(new Date(Number(m[3]), idx, Number(m[1])));
+}
+
+// Le tour actif est toujours le dernier ajouté : les tours s'accumulent d'un cycle
+// à l'autre, donc on ne peut pas l'indexer par tour_actuel.
+function tourEnCours(t){ return t.tours[t.tours.length - 1]; }
+
+/* ---------- Groupes de bénéficiaires ----------
+   Plusieurs participants peuvent toucher la même échéance : ordre_tour n'est donc
+   pas unique, c'est le numéro d'échéance partagé par un groupe. */
+
+// Nombre d'échéances dans un cycle (≠ nombre de participants quand il y a des groupes).
+function nombreTours(t){
+  return Math.max(...t.participants.map(p => p.ordre_tour));
+}
+
+// Participants qui touchent lors d'un tour donné.
+function beneficiairesDuTour(t, tour){
+  const ids = tour.beneficiaires_ids || [tour.beneficiaire_id];
+  return ids.map(id => t.participants.find(p => p.id === id)).filter(Boolean);
+}
+
+function pactoleTotalTour(t, tour){
+  return beneficiairesDuTour(t, tour).reduce((s, p) => s + p.pactole, 0);
+}
+
+function nomsBeneficiaires(t, tour){
+  const b = beneficiairesDuTour(t, tour);
+  if(b.length === 0) return 'Participant supprimé';
+  if(b.length === 1) return b[0].nom;
+  return b.slice(0, -1).map(p => p.nom).join(', ') + ' et ' + b[b.length - 1].nom;
+}
+
+function participantsDuTour(t, numeroTour){
+  return t.participants.filter(p => p.ordre_tour === numeroTour);
+}
+
+let data = loadData();
+let currentTontineId = null;
+let confirmCallback = null;
+
+/* ---------- Confirmation (remplace window.confirm, pas fiable dans tous les contextes) ---------- */
+function showConfirm(message, callback){
+  document.getElementById('confirm-message').textContent = message;
+  confirmCallback = callback;
+  document.getElementById('confirm-overlay').classList.add('active');
+}
+function closeConfirmModal(){
+  document.getElementById('confirm-overlay').classList.remove('active');
+  confirmCallback = null;
+}
+function confirmOk(){
+  const cb = confirmCallback;
+  closeConfirmModal();
+  if(cb) cb();
+}
+
+/* ---------- Navigation ---------- */
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+}
+
+/* ---------- Dashboard ---------- */
+function renderDashboard(){
+  showView('dashboard');
+  const sub = document.getElementById('dashboard-sub');
+  const content = document.getElementById('dashboard-content');
+  const tontines = data.tontines;
+
+  if(tontines.length === 0){
+    sub.textContent = "Aucune tontine pour l'instant";
+    content.innerHTML = `
+      <div class="empty-state">
+        <div class="big">Crée ta première tontine</div>
+        <div>Ajoute son montant, sa fréquence et la liste des participants pour démarrer le suivi.</div>
+      </div>`;
+    return;
+  }
+
+  sub.textContent = tontines.length + (tontines.length > 1 ? ' tontines actives' : ' tontine active');
+
+  let html = '<div class="tontine-grid">';
+  tontines.forEach(t => {
+    const tour = tourEnCours(t);
+    const nbBenef = t.participants.length;
+    const n = nombreTours(t);
+    const circumference = 150.8;
+    // Un tour ne compte comme "fait" qu'une fois clôturé : sinon au dernier tour
+    // clôturé l'anneau resterait incomplet.
+    const toursFaits = tour.statut === 'terminee' ? t.tour_actuel : t.tour_actuel - 1;
+    const progress = toursFaits / n;
+    const dashoffset = circumference * (1 - progress);
+    const montants = t.participants.map(p => p.montant_cotisation);
+    const minM = Math.min(...montants), maxM = Math.max(...montants);
+    const cotisationLabel = minM === maxM ? `${fmt(minM)} F` : `de ${fmt(minM)} à ${fmt(maxM)} F`;
+    const benefs = beneficiairesDuTour(t, tour);
+
+    html += `
+      <div class="tontine-card" onclick="openDetail('${t.id}')">
+        <div class="tc-top">
+          <div>
+            <div class="tc-name">${escapeHtml(t.nom)}</div>
+            <div class="tc-meta">${nbBenef} participants · ${n} échéances · ${t.frequence}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="status-pill">${tour.statut === 'terminee' && t.tour_actuel === n
+              ? `Cycle ${t.cycle} terminé`
+              : `Cycle ${t.cycle} · Tour ${t.tour_actuel}/${n}`}</span>
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteTontine('${t.id}')" title="Supprimer cette tontine">🗑</button>
+          </div>
+        </div>
+        <div class="tc-body">
+          <svg width="56" height="56" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#e7dcc4" stroke-width="5"/>
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#c8892c" stroke-width="5"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${dashoffset}" stroke-linecap="round"
+              transform="rotate(-90 28 28)"/>
+          </svg>
+          <div class="tc-stats">
+            Cotisation : <b>${cotisationLabel}</b><br>
+            Échéance de ${labelPeriode(tour.date_prevue, t.frequence)} : <b>${fmt(pactoleTotalTour(t, tour))} F</b><br>
+            ${benefs.length > 1 ? 'Bénéficiaires' : 'Bénéficiaire'} : <b>${escapeHtml(nomsBeneficiaires(t, tour))}</b>
+          </div>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  html += `<div style="text-align:center; margin-top:28px;">
+    <button class="btn-ghost" style="font-size:12px; color:var(--slate); background:none; box-shadow:none;" onclick="resetAllData()">Réinitialiser toutes les données</button>
+  </div>`;
+  content.innerHTML = html;
+}
+
+function fmt(n){ return n.toLocaleString('fr-FR'); }
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function deleteTontine(id){
+  const t = data.tontines.find(x => x.id === id);
+  if(!t) return;
+  showConfirm(`Supprimer définitivement la tontine "${t.nom}" et toutes ses données ? Cette action est irréversible.`, () => {
+    data.tontines = data.tontines.filter(x => x.id !== id);
+    saveData(data);
+    renderDashboard();
+  });
+}
+
+function resetAllData(){
+  showConfirm("Supprimer TOUTES les tontines et toutes leurs données ? Cette action est irréversible.", () => {
+    data = { tontines: [] };
+    saveData(data);
+    renderDashboard();
+  });
+}
+
+/* ---------- Détail / roue ---------- */
+function switchTab(name){
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function openDetail(id){
+  currentTontineId = id;
+  switchTab('paiements');
+  renderDetail();
+  showView('detail');
+}
+
+function renderDetail(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const tour = tourEnCours(t);
+  const payees = Object.values(tour.cotisations).filter(s => s === 'paye').length;
+  const nbTours = nombreTours(t);
+
+  document.getElementById('detail-nom').textContent = t.nom;
+  document.getElementById('detail-meta').textContent =
+    `${t.participants.length} participants · ${nbTours} échéances · ${t.frequence} · démarrée le ${t.date_debut}`;
+  const periode = labelPeriode(tour.date_prevue, t.frequence);
+  document.getElementById('detail-tour-title').textContent =
+    `${periode.charAt(0).toUpperCase() + periode.slice(1)} — tour ${t.tour_actuel} sur ${nbTours}`;
+  document.getElementById('detail-tour-sub').textContent =
+    `Cycle ${t.cycle} · ${payees} cotisation${payees>1?'s':''} reçue${payees>1?'s':''} sur ${t.participants.length}`;
+
+  const n = t.participants.length;
+  document.getElementById('tab-paiements-badge').textContent = `${payees}/${n}`;
+  document.getElementById('paiements-title').textContent =
+    `Cotisations de ${periode}`;
+  document.getElementById('paiements-sub').textContent = payees === n
+    ? `Tout le monde a payé pour cette échéance.`
+    : `${payees} sur ${n} ont payé. Coche chaque participant quand il verse sa part.`;
+
+  buildBeneficiaireCard(t, tour);
+  buildWheel(t, tour);
+  buildList(t, tour);
+}
+
+function buildBeneficiaireCard(t, tour){
+  const card = document.getElementById('beneficiaire-card');
+  card.className = 'beneficiaire-card';
+  const benefs = beneficiairesDuTour(t, tour);
+  const total = pactoleTotalTour(t, tour);
+  const detail = benefs.length > 1
+    ? benefs.map(b => `${escapeHtml(b.nom)} : ${fmt(b.pactole)} F`).join(' · ')
+    : `${fmt(total)} F au total`;
+
+  if(tour.statut === 'terminee'){
+    // Cycle déjà clôturé mais nouveau cycle pas encore configuré (choix "Plus tard").
+    card.innerHTML = `
+      <div class="b-left">
+        <div class="b-icon">✓</div>
+        <div>
+          <div class="b-name">${escapeHtml(nomsBeneficiaires(t, tour))} — cycle terminé</div>
+          <div class="b-sub">${fmt(total)} F remis</div>
+        </div>
+      </div>
+      <button class="recu-btn" onclick="openNouveauCycleModal()">Configurer le nouveau cycle</button>
+    `;
+    return;
+  }
+
+  card.innerHTML = `
+    <div class="b-left">
+      <div class="b-icon">🎁</div>
+      <div>
+        <div class="b-name">${escapeHtml(nomsBeneficiaires(t, tour))} ${benefs.length > 1 ? 'reçoivent' : 'reçoit'} le pactole de ${labelPeriode(tour.date_prevue, t.frequence)}</div>
+        <div class="b-sub">${detail}</div>
+      </div>
+    </div>
+    <button class="recu-btn" onclick="marquerRecuEtAvancer()">Marquer comme remis → tour suivant</button>
+  `;
+}
+
+function marquerRecuEtAvancer(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const nbParticipants = t.participants.length;
+  const tour = tourEnCours(t);
+  const payees = Object.values(tour.cotisations).filter(s => s === 'paye').length;
+
+  const proceed = () => finaliserTour(t, tour);
+
+  if(payees < nbParticipants){
+    showConfirm(`Seulement ${payees}/${nbParticipants} participants ont payé leur cotisation pour ce tour. Marquer comme remis et passer au suivant quand même ?`, proceed);
+  } else {
+    proceed();
+  }
+}
+
+function finaliserTour(t, tour){
+  tour.recu = true;
+  tour.statut = 'terminee';
+  const today = new Date();
+  tour.date_cloture = today.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+
+  if(t.tour_actuel === nombreTours(t)){
+    // Cycle complet : toutes les échéances sont passées. On ouvre l'écran de nouveau
+    // cycle plutôt que d'enchaîner, car les montants changent souvent.
+    saveData(data);
+    renderDetail();
+    openNouveauCycleModal();
+    return;
+  }
+
+  const prochainNumero = t.tour_actuel + 1;
+  const prochainsBeneficiaires = participantsDuTour(t, prochainNumero);
+
+  const nouveauTour = {
+    numero_tour: t.tours.length + 1,
+    cycle: t.cycle,
+    tour_dans_cycle: prochainNumero,
+    date_prevue: ajouterPeriodes(tour.date_prevue, t.frequence, 1),
+    beneficiaires_ids: prochainsBeneficiaires.map(p => p.id),
+    statut: 'en_cours',
+    recu: false,
+    cotisations: {}
+  };
+  t.participants.forEach(p => nouveauTour.cotisations[p.id] = 'attente');
+  t.tours.push(nouveauTour);
+  t.tour_actuel = prochainNumero;
+
+  saveData(data);
+  renderDetail();
+}
+
+function buildWheel(t, tour){
+  const wheel = document.getElementById('wheel');
+  wheel.innerHTML = '';
+  const R = 130, cx = 170, cy = 170;
+  const nbParticipants = t.participants.length;
+  const nbTours = nombreTours(t);
+  const benefIds = beneficiairesDuTour(t, tour).map(b => b.id);
+
+  const center = document.createElement('div');
+  center.className = 'wheel-center';
+  center.innerHTML = `<div class="amount">${fmt(pactoleTotalTour(t, tour))} F</div><div class="label">${labelPeriode(tour.date_prevue, t.frequence)}</div><div class="tour">Tour ${t.tour_actuel} / ${nbTours}</div>`;
+  wheel.appendChild(center);
+
+  // Les participants sont placés dans l'ordre de passage : ceux qui partagent une
+  // échéance se retrouvent donc côte à côte sur le cercle.
+  const ordonnes = [...t.participants].sort((a,b) => a.ordre_tour - b.ordre_tour);
+
+  ordonnes.forEach((p, i) => {
+    const angle = (i / nbParticipants) * 2 * Math.PI - Math.PI/2;
+    const x = cx + R * Math.cos(angle) - 36;
+    const y = cy + R * Math.sin(angle) - 36;
+    const node = document.createElement('div');
+    let cls = 'node';
+    const isCurrent = benefIds.includes(p.id);
+    const isPast = p.ordre_tour < t.tour_actuel;
+    const cotStatut = tour.cotisations[p.id];
+
+    if(isCurrent) cls += tour.recu ? ' current recu' : ' current';
+    else if(cotStatut === 'paye') cls += ' paid';
+    else cls += ' due';
+    if(isPast && !isCurrent) cls += ' past';
+
+    node.className = cls;
+    node.style.left = x+'px';
+    node.style.top = y+'px';
+    let statusLabel = isCurrent ? (tour.recu ? 'a reçu ✓' : 'à recevoir') : isPast ? 'déjà reçu' : (cotStatut === 'paye' ? 'a payé' : 'en attente');
+    // Mois auquel chaque participant touche : décalé depuis l'échéance en cours.
+    const echeance = ajouterPeriodes(tour.date_prevue, t.frequence, p.ordre_tour - t.tour_actuel);
+    const moisCourt = t.frequence === 'mensuel'
+      ? MOIS_FR[new Date(echeance + 'T00:00:00').getMonth()].slice(0,4) + '.'
+      : labelPeriode(echeance, t.frequence).replace('sem. du ', '');
+    node.innerHTML = `<div class="n-mois">${moisCourt}</div><div class="n-name">${escapeHtml(p.nom.split(' ')[0])}</div><div class="n-status">${statusLabel}</div>`;
+    wheel.appendChild(node);
+  });
+}
+
+function buildList(t, tour){
+  const list = document.getElementById('participant-list');
+  list.innerHTML = '';
+  t.participants.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'participant-row';
+    const paye = tour.cotisations[p.id] === 'paye';
+    row.innerHTML = `
+      <div class="p-left">
+        <div class="p-order">${p.ordre_tour}</div>
+        <div>
+          <div class="p-name">${escapeHtml(p.nom)}</div>
+          <div class="p-phone">${escapeHtml(p.telephone || '')}${p.telephone ? ' · ' : ''}${fmt(p.montant_cotisation)} F/tour · pactole ${fmt(p.pactole)} F</div>
+        </div>
+      </div>
+      <button class="check-btn ${paye?'checked':''}" onclick="toggleCotisation('${p.id}')">${paye?'✓':'✕'}</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function toggleCotisation(participantId){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const tour = tourEnCours(t);
+  tour.cotisations[participantId] = tour.cotisations[participantId] === 'paye' ? 'attente' : 'paye';
+  saveData(data);
+  renderDetail();
+}
+
+/* ---------- Historique ---------- */
+function openHistoriqueModal(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const closedTours = t.tours.filter(tr => tr.statut === 'terminee');
+
+  // Regroupement par cycle : un historique tour par tour deviendrait vite illisible.
+  const parCycle = {};
+  closedTours.forEach(tr => {
+    const c = tr.cycle || 1;
+    if(!parCycle[c]) parCycle[c] = [];
+    parCycle[c].push(tr);
+  });
+  const cycles = Object.keys(parCycle).map(Number).sort((a,b) => b - a);
+
+  document.getElementById('historique-sub').textContent = cycles.length
+    ? `${cycles.length} cycle${cycles.length > 1 ? 's' : ''} avec des tours clôturés`
+    : "Aucun tour clôturé pour l'instant.";
+
+  const list = document.getElementById('historique-list');
+  list.innerHTML = '';
+
+  if(cycles.length === 0){
+    list.innerHTML = `<div style="color:var(--slate); font-size:13px; padding:8px 0;">Rien à afficher pour l'instant.</div>`;
+    document.getElementById('historique-overlay').classList.add('active');
+    return;
+  }
+
+  cycles.forEach(c => {
+    const tours = parCycle[c].slice().sort((a,b) => (a.tour_dans_cycle || 0) - (b.tour_dans_cycle || 0));
+    const totalVerse = tours.reduce((sum, tr) => sum + pactoleTotalTour(t, tr), 0);
+    const estCycleActuel = c === t.cycle;
+    const complet = tours.length === nombreTours(t);
+    const debut = labelPeriode(tours[0].date_prevue, t.frequence);
+    const fin = labelPeriode(tours[tours.length - 1].date_prevue, t.frequence);
+    const plage = debut === fin ? debut : `${debut} → ${fin}`;
+
+    const section = document.createElement('div');
+    section.className = 'cycle-section';
+    // Le cycle le plus récent est ouvert par défaut, les plus anciens repliés.
+    const ouvert = c === cycles[0];
+    section.innerHTML = `
+      <button class="cycle-header ${ouvert ? 'open' : ''}" onclick="toggleCycleSection(this)">
+        <span class="cy-arrow">▸</span>
+        <span class="cy-title">Cycle ${c}${estCycleActuel && !complet ? ' (en cours)' : ''}<span class="cy-plage">${plage}</span></span>
+        <span class="cy-meta">${fmt(totalVerse)} F versés</span>
+      </button>
+      <div class="cycle-body" style="display:${ouvert ? 'block' : 'none'};">
+        ${tours.map(tr => {
+          const benefs = beneficiairesDuTour(t, tr);
+          const payees = Object.values(tr.cotisations).filter(s => s === 'paye').length;
+          const total = Object.keys(tr.cotisations).length;
+          const detail = benefs.length > 1
+            ? benefs.map(b => `${escapeHtml(b.nom)} ${fmt(b.pactole)} F`).join(' + ')
+            : `${escapeHtml(nomsBeneficiaires(t, tr))} — ${fmt(pactoleTotalTour(t, tr))} F`;
+          return `
+            <div class="participant-row">
+              <div class="p-left">
+                <div class="p-order">${tr.tour_dans_cycle || tr.numero_tour}</div>
+                <div>
+                  <div class="p-name">${detail}</div>
+                  <div class="p-phone">${labelPeriode(tr.date_prevue, t.frequence)}${tr.date_cloture ? ' · remis le ' + tr.date_cloture : ''} · ${payees}/${total} cotisations</div>
+                </div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+    list.appendChild(section);
+  });
+
+  document.getElementById('historique-overlay').classList.add('active');
+}
+
+function toggleCycleSection(btn){
+  const body = btn.nextElementSibling;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  btn.classList.toggle('open', !isOpen);
+}
+
+function closeHistoriqueModal(){
+  document.getElementById('historique-overlay').classList.remove('active');
+}
+
+/* ---------- Nouveau cycle ---------- */
+function openNouveauCycleModal(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  document.getElementById('nc-error').textContent = '';
+
+  document.getElementById('nc-title').textContent = `🎉 Cycle ${t.cycle} terminé !`;
+  document.getElementById('nc-sub').textContent =
+    `Les ${t.participants.length} participants sont tous passés. Ajuste les montants ou l'ordre si besoin, puis lance le cycle ${t.cycle + 1}.`;
+
+  const wrap = document.getElementById('nc-participant-inputs');
+  wrap.innerHTML = '';
+
+  const ordered = [...t.participants].sort((a,b) => a.ordre_tour - b.ordre_tour);
+  ordered.forEach((p, idx) => {
+    // Une ligne est "groupée" si elle partage l'échéance de celle qui la précède.
+    const groupe = idx > 0 && ordered[idx - 1].ordre_tour === p.ordre_tour;
+    const row = document.createElement('div');
+    row.className = 'participant-input-row';
+    row.dataset.id = p.id;
+    row.innerHTML = `
+      <div class="pi-row1">
+        <span class="p-order-badge"></span>
+        <div class="pi-field f-nom">
+          <label>Nom</label>
+          <input type="text" class="p-input-nom" value="${escapeAttr(p.nom)}">
+        </div>
+        <div class="pi-field f-tel">
+          <label>Téléphone</label>
+          <input type="text" class="p-input-tel" value="${escapeAttr(p.telephone || '')}">
+        </div>
+        <div class="order-btns">
+          <button type="button" onclick="moveNcRow(this, -1)">▲</button>
+          <button type="button" onclick="moveNcRow(this, 1)">▼</button>
+        </div>
+      </div>
+      <div class="pi-row2">
+        <div class="pi-field f-montant">
+          <label>Cotisation / tour (F)</label>
+          <input type="number" class="p-input-montant" value="${p.montant_cotisation}">
+        </div>
+        <div class="pi-field f-pactole">
+          <label>Pactole à recevoir (F)</label>
+          <input type="number" class="p-input-pactole" value="${p.pactole}">
+        </div>
+      </div>
+      <label class="groupe-toggle">
+        <input type="checkbox" class="p-input-groupe" ${groupe ? 'checked' : ''} onchange="refreshNcOrderBadges()">
+        <span>Touche la même échéance que le participant précédent</span>
+      </label>
+    `;
+    wrap.appendChild(row);
+  });
+  refreshNcOrderBadges();
+  document.getElementById('nc-overlay').classList.add('active');
+}
+
+function closeNouveauCycleModal(){
+  document.getElementById('nc-overlay').classList.remove('active');
+}
+
+function moveNcRow(btn, direction){
+  const row = btn.closest('.participant-input-row');
+  if(direction === -1 && row.previousElementSibling){
+    row.parentElement.insertBefore(row, row.previousElementSibling);
+  } else if(direction === 1 && row.nextElementSibling){
+    row.parentElement.insertBefore(row.nextElementSibling, row);
+  }
+  refreshNcOrderBadges();
+}
+
+function refreshNcOrderBadges(){
+  calculerBadgesEcheance('#nc-participant-inputs');
+}
+
+function escapeAttr(s){ return String(s).replace(/"/g, '&quot;'); }
+
+function saveNouveauCycle(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const rows = document.querySelectorAll('#nc-participant-inputs .participant-input-row');
+  const errorEl = document.getElementById('nc-error');
+  errorEl.textContent = '';
+
+  let hasError = false;
+  const updates = [];
+  rows.forEach(row => {
+    const id = row.dataset.id;
+    const nom = row.querySelector('.p-input-nom').value.trim();
+    const tel = row.querySelector('.p-input-tel').value.trim();
+    const montant = parseInt(row.querySelector('.p-input-montant').value, 10);
+    const pactole = parseInt(row.querySelector('.p-input-pactole').value, 10);
+    const echeance = Number(row.dataset.echeance) || 1;
+    if(!nom || !montant || montant <= 0 || !pactole || pactole <= 0) hasError = true;
+    updates.push({ id, nom, telephone: tel, montant_cotisation: montant, pactole, ordre_tour: echeance });
+  });
+
+  if(hasError){
+    errorEl.textContent = "Chaque participant a besoin d'un nom, d'une cotisation et d'un pactole valides.";
+    return;
+  }
+
+  updates.forEach(u => {
+    const p = t.participants.find(x => x.id === u.id);
+    p.nom = u.nom;
+    p.telephone = u.telephone;
+    p.montant_cotisation = u.montant_cotisation;
+    p.pactole = u.pactole;
+    p.ordre_tour = u.ordre_tour;
+  });
+
+  t.cycle += 1;
+  t.tour_actuel = 1;
+  const premiersBeneficiaires = participantsDuTour(t, 1);
+  const dernierTour = t.tours[t.tours.length - 1];
+  const nouveauTour = {
+    numero_tour: t.tours.length + 1,
+    cycle: t.cycle,
+    tour_dans_cycle: 1,
+    date_prevue: ajouterPeriodes(dernierTour.date_prevue, t.frequence, 1),
+    beneficiaires_ids: premiersBeneficiaires.map(p => p.id),
+    statut: 'en_cours',
+    recu: false,
+    cotisations: {}
+  };
+  t.participants.forEach(p => nouveauTour.cotisations[p.id] = 'attente');
+  t.tours.push(nouveauTour);
+
+  saveData(data);
+  closeNouveauCycleModal();
+  renderDetail();
+}
+
+/* ---------- Réorganisation de l'ordre ---------- */
+function openReorderModal(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const locked = t.participants.filter(p => p.ordre_tour < t.tour_actuel).sort((a,b) => a.ordre_tour - b.ordre_tour);
+  const movable = t.participants.filter(p => p.ordre_tour >= t.tour_actuel).sort((a,b) => a.ordre_tour - b.ordre_tour);
+
+  const lockedEl = document.getElementById('reorder-locked-list');
+  lockedEl.innerHTML = locked.length
+    ? `<div class="reorder-locked">Déjà passés (ordre figé) : ${locked.map(p => escapeHtml(p.nom)).join(', ')}</div>`
+    : '';
+
+  const list = document.getElementById('reorder-list');
+  list.innerHTML = '';
+  movable.forEach((p, idx) => {
+    const groupe = idx > 0 && movable[idx - 1].ordre_tour === p.ordre_tour;
+    const row = document.createElement('div');
+    row.className = 'reorder-row';
+    row.dataset.id = p.id;
+    row.innerHTML = `
+      <div style="flex:1;">
+        <div class="r-line">
+          <span class="r-badge"></span>
+          <span class="r-name">${escapeHtml(p.nom)}</span>
+          <span class="r-pactole">${fmt(p.pactole)} F</span>
+          <div class="order-btns">
+            <button type="button" onclick="moveReorderRow(this, -1)">▲</button>
+            <button type="button" onclick="moveReorderRow(this, 1)">▼</button>
+          </div>
+        </div>
+        <label class="groupe-toggle" style="padding-left:30px; margin-top:6px;">
+          <input type="checkbox" class="r-groupe" ${groupe ? 'checked' : ''} onchange="refreshReorderButtons()">
+          <span>Même échéance que le précédent</span>
+        </label>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+  refreshReorderButtons();
+  document.getElementById('reorder-overlay').classList.add('active');
+}
+
+function closeReorderModal(){
+  document.getElementById('reorder-overlay').classList.remove('active');
+}
+
+function moveReorderRow(btn, direction){
+  const row = btn.closest('.reorder-row');
+  if(direction === -1 && row.previousElementSibling){
+    row.parentElement.insertBefore(row, row.previousElementSibling);
+  } else if(direction === 1 && row.nextElementSibling){
+    row.parentElement.insertBefore(row.nextElementSibling, row);
+  }
+  refreshReorderButtons();
+}
+
+function refreshReorderButtons(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const rows = document.querySelectorAll('#reorder-list .reorder-row');
+  // La numérotation reprend à l'échéance en cours : les tours passés sont figés.
+  let echeance = t.tour_actuel - 1;
+  rows.forEach((row, i) => {
+    const cb = row.querySelector('.r-groupe');
+    const groupe = i > 0 && cb.checked;
+    if(!groupe) echeance++;
+    row.dataset.echeance = echeance;
+    row.querySelector('.r-badge').textContent = echeance;
+    row.querySelector('.r-badge').classList.toggle('groupe', groupe);
+    const wrapper = cb.closest('.groupe-toggle');
+    wrapper.style.display = i === 0 ? 'none' : 'flex';
+    row.querySelector('.order-btns button:first-child').disabled = (i === 0);
+    row.querySelector('.order-btns button:last-child').disabled = (i === rows.length - 1);
+  });
+}
+
+function saveReorder(){
+  const t = data.tontines.find(x => x.id === currentTontineId);
+  const rows = document.querySelectorAll('#reorder-list .reorder-row');
+
+  rows.forEach(r => {
+    const p = t.participants.find(x => x.id === r.dataset.id);
+    p.ordre_tour = Number(r.dataset.echeance);
+  });
+
+  // Les bénéficiaires du tour en cours suivent le nouveau groupe de tête.
+  const tour = tourEnCours(t);
+  tour.beneficiaires_ids = participantsDuTour(t, t.tour_actuel).map(p => p.id);
+
+  saveData(data);
+  closeReorderModal();
+  renderDetail();
+}
+
+/* ---------- Création de tontine ---------- */
+let participantInputCount = 0;
+let montantMode = 'fixe';
+
+function setMontantMode(mode){
+  montantMode = mode;
+  document.getElementById('mode-fixe-btn').classList.toggle('active', mode === 'fixe');
+  document.getElementById('mode-variable-btn').classList.toggle('active', mode === 'variable');
+  document.getElementById('field-montant-global').style.display = mode === 'fixe' ? 'block' : 'none';
+  document.getElementById('participant-inputs').classList.toggle('mode-fixe', mode === 'fixe');
+  document.getElementById('participant-hint').textContent = mode === 'fixe'
+    ? "Tout le monde cotise le même montant et reçoit la même part le jour de son tour."
+    : "Chaque participant définit sa propre cotisation par tour ET son propre pactole à recevoir — utile quand plusieurs personnes se partagent une part, ou que chacun vise un montant différent.";
+}
+
+function openCreateModal(){
+  document.getElementById('f-nom').value = '';
+  document.getElementById('f-montant-global').value = '';
+  document.getElementById('f-frequence').value = 'mensuel';
+  // Par défaut, première échéance à la fin du mois en cours.
+  const finDeMois = new Date();
+  finDeMois.setMonth(finDeMois.getMonth() + 1, 0);
+  document.getElementById('f-date-debut').value = toISO(finDeMois);
+  document.getElementById('form-error').textContent = '';
+  document.getElementById('participant-inputs').innerHTML = '';
+  participantInputCount = 0;
+  setMontantMode('fixe');
+  addParticipantInput();
+  addParticipantInput();
+  document.getElementById('create-overlay').classList.add('active');
+}
+function closeCreateModal(){
+  document.getElementById('create-overlay').classList.remove('active');
+}
+
+function addParticipantInput(){
+  participantInputCount++;
+  const wrap = document.getElementById('participant-inputs');
+  const row = document.createElement('div');
+  row.className = 'participant-input-row';
+  row.innerHTML = `
+    <div class="pi-row1">
+      <span class="p-order-badge"></span>
+      <div class="pi-field f-nom">
+        <label>Nom</label>
+        <input type="text" class="p-input-nom">
+      </div>
+      <div class="pi-field f-tel">
+        <label>Téléphone</label>
+        <input type="text" class="p-input-tel">
+      </div>
+      <div class="order-btns">
+        <button type="button" onclick="moveParticipantRow(this, -1)">▲</button>
+        <button type="button" onclick="moveParticipantRow(this, 1)">▼</button>
+      </div>
+      <button class="rm" onclick="removeParticipantRow(this)">✕</button>
+    </div>
+    <div class="pi-row2">
+      <div class="pi-field f-montant">
+        <label>Cotisation / tour (F)</label>
+        <input type="number" class="p-input-montant">
+      </div>
+      <div class="pi-field f-pactole">
+        <label>Pactole à recevoir (F)</label>
+        <input type="number" class="p-input-pactole">
+      </div>
+    </div>
+    <label class="groupe-toggle">
+      <input type="checkbox" class="p-input-groupe" onchange="refreshOrderBadges()">
+      <span>Touche la même échéance que le participant précédent</span>
+    </label>
+  `;
+  wrap.appendChild(row);
+  refreshOrderBadges();
+}
+
+function removeParticipantRow(btn){
+  btn.closest('.participant-input-row').remove();
+  refreshOrderBadges();
+}
+
+function moveParticipantRow(btn, direction){
+  const row = btn.closest('.participant-input-row');
+  if(direction === -1 && row.previousElementSibling){
+    row.parentElement.insertBefore(row, row.previousElementSibling);
+  } else if(direction === 1 && row.nextElementSibling){
+    row.parentElement.insertBefore(row.nextElementSibling, row);
+  }
+  refreshOrderBadges();
+}
+
+function refreshOrderBadges(){
+  calculerBadgesEcheance('#participant-inputs');
+}
+
+// Calcule le numéro d'échéance de chaque ligne : une ligne "groupée" partage le
+// numéro de la précédente au lieu d'en prendre un nouveau.
+function calculerBadgesEcheance(selecteur){
+  const rows = document.querySelectorAll(selecteur + ' .participant-input-row');
+  let echeance = 0;
+  rows.forEach((row, i) => {
+    const groupeCb = row.querySelector('.p-input-groupe');
+    const groupe = i > 0 && groupeCb && groupeCb.checked;
+    if(!groupe) echeance++;
+    row.dataset.echeance = echeance;
+
+    const badge = row.querySelector('.p-order-badge');
+    badge.textContent = echeance;
+    badge.classList.toggle('groupe', groupe);
+    row.classList.toggle('en-groupe', groupe);
+
+    // La première ligne ne peut pas être groupée avec une précédente.
+    const wrapper = groupeCb ? groupeCb.closest('.groupe-toggle') : null;
+    if(wrapper) wrapper.style.display = i === 0 ? 'none' : 'flex';
+
+    const up = row.querySelector('.order-btns button:first-child');
+    const down = row.querySelector('.order-btns button:last-child');
+    if(up) up.disabled = (i === 0);
+    if(down) down.disabled = (i === rows.length - 1);
+  });
+}
+
+function submitCreateTontine(){
+  const nom = document.getElementById('f-nom').value.trim();
+  const frequence = document.getElementById('f-frequence').value;
+  const rows = document.querySelectorAll('#participant-inputs .participant-input-row');
+  const errorEl = document.getElementById('form-error');
+  errorEl.textContent = '';
+
+  let montantGlobal = null;
+  if(montantMode === 'fixe'){
+    montantGlobal = parseInt(document.getElementById('f-montant-global').value, 10);
+    if(!montantGlobal || montantGlobal <= 0){
+      errorEl.textContent = "Le montant de cotisation doit être un nombre positif.";
+      return;
+    }
+  }
+
+  const participantsData = [];
+  let montantError = false;
+  let pactoleError = false;
+  rows.forEach(row => {
+    const nomP = row.querySelector('.p-input-nom').value.trim();
+    const tel = row.querySelector('.p-input-tel').value.trim();
+    const echeance = Number(row.dataset.echeance) || 1;
+    const montantP = montantMode === 'fixe'
+      ? montantGlobal
+      : parseInt(row.querySelector('.p-input-montant').value, 10);
+    let pactoleP;
+    if(montantMode === 'fixe'){
+      pactoleP = montantGlobal * rows.length;
+    } else {
+      pactoleP = parseInt(row.querySelector('.p-input-pactole').value, 10);
+    }
+    if(nomP){
+      if(!montantP || montantP <= 0) montantError = true;
+      if(!pactoleP || pactoleP <= 0) pactoleError = true;
+      participantsData.push({nom: nomP, telephone: tel, montant_cotisation: montantP, pactole: pactoleP, ordre_tour: echeance});
+    }
+  });
+
+  if(!nom){ errorEl.textContent = "Donne un nom à ta tontine."; return; }
+  if(participantsData.length < 2){ errorEl.textContent = "Il faut au moins 2 participants."; return; }
+  if(montantError){ errorEl.textContent = "Chaque participant doit avoir un montant de cotisation valide."; return; }
+  if(pactoleError){ errorEl.textContent = "Chaque participant doit avoir un pactole à recevoir valide."; return; }
+
+  // Les lignes vides ignorées peuvent laisser des trous dans la numérotation :
+  // on renumérote pour garder des échéances consécutives.
+  const echeancesUniques = [...new Set(participantsData.map(p => p.ordre_tour))].sort((a,b) => a - b);
+  const remap = {};
+  echeancesUniques.forEach((e, i) => remap[e] = i + 1);
+
+  const tontineId = uid();
+  const participants = participantsData.map(p => ({
+    id: uid(),
+    nom: p.nom,
+    telephone: p.telephone,
+    montant_cotisation: p.montant_cotisation,
+    pactole: p.pactole,
+    ordre_tour: remap[p.ordre_tour]
+  }));
+
+  const dateDebutIso = document.getElementById('f-date-debut').value || toISO(new Date());
+
+  const premierTour = {
+    numero_tour: 1,
+    cycle: 1,
+    tour_dans_cycle: 1,
+    date_prevue: dateDebutIso,
+    beneficiaires_ids: participants.filter(p => p.ordre_tour === 1).map(p => p.id),
+    statut: 'en_cours',
+    recu: false,
+    cotisations: {}
+  };
+  participants.forEach(p => premierTour.cotisations[p.id] = 'attente');
+
+  const dateStr = new Date(dateDebutIso + 'T00:00:00')
+    .toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+
+  data.tontines.push({
+    id: tontineId,
+    nom, frequence,
+    date_debut: dateStr,
+    date_debut_iso: dateDebutIso,
+    tour_actuel: 1,
+    cycle: 1,
+    statut: 'active',
+    participants,
+    tours: [premierTour]
+  });
+
+  saveData(data);
+  closeCreateModal();
+  renderDashboard();
+}
+
+/* ---------- Init ---------- */
+renderDashboard();
+</script>
+
+<!-- BANNIÈRE D'INSTALLATION PWA -->
+<div class="install-banner" id="install-banner">
+  <img src="icon-192.png" alt="" class="ib-icon">
+  <div class="ib-text">
+    <div class="ib-title">Installer TontinePro</div>
+    <div class="ib-sub" id="ib-sub">Accès direct depuis l'écran d'accueil, même sans connexion.</div>
+  </div>
+  <div class="ib-actions">
+    <button class="ib-later" onclick="dismissInstall()">Plus tard</button>
+    <button class="ib-install" id="ib-install-btn" onclick="lancerInstallation()">Installer</button>
+  </div>
+</div>
+
+<script>
+/* ---------- Installation PWA ---------- */
+let promptInstall = null;
+
+// Chrome/Android : l'événement arrive quand l'app est installable.
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  promptInstall = e;
+  if(!installRefuseRecemment()) afficherBanniere();
+});
+
+function estStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function estIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+
+function installRefuseRecemment(){
+  try{
+    const jusqu = localStorage.getItem('tontinepro_install_refuse');
+    return jusqu && Date.now() < Number(jusqu);
+  }catch(e){ return false; }
+}
+
+function afficherBanniere(){
+  if(estStandalone()) return;
+  document.getElementById('install-banner').classList.add('visible');
+}
+
+function dismissInstall(){
+  document.getElementById('install-banner').classList.remove('visible');
+  try{
+    // On ne relance pas la proposition avant une semaine.
+    localStorage.setItem('tontinepro_install_refuse', String(Date.now() + 7 * 24 * 3600 * 1000));
+  }catch(e){}
+}
+
+async function lancerInstallation(){
+  if(promptInstall){
+    promptInstall.prompt();
+    const { outcome } = await promptInstall.userChoice;
+    promptInstall = null;
+    if(outcome === 'accepted'){
+      document.getElementById('install-banner').classList.remove('visible');
+    } else {
+      dismissInstall();
+    }
+    return;
+  }
+  // iOS ne propose pas d'installation automatique : on explique la marche à suivre.
+  if(estIOS()){
+    document.getElementById('ib-sub').innerHTML =
+      "Sur iPhone : appuie sur <b>Partager</b> ⬆️ en bas de Safari, puis <b>« Sur l'écran d'accueil »</b>.";
+    document.getElementById('ib-install-btn').style.display = 'none';
+  }
+}
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').classList.remove('visible');
+  promptInstall = null;
+});
+
+// iOS : pas d'événement beforeinstallprompt, on propose quand même la marche à suivre.
+if(estIOS() && !estStandalone() && !installRefuseRecemment()){
+  setTimeout(afficherBanniere, 2500);
+}
+
+/* ---------- Service worker (mode hors ligne) ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.warn('Service worker non enregistré :', err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>
